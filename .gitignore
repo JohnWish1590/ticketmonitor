@@ -1,0 +1,17 @@
+# 依赖
+node_modules/
+
+# 自动生成的产物（由 scripts/pipeline.js 运行后生成）
+index.html
+data/
+dist/
+
+# 临时 / 调试文件
+tmp_*
+*.log
+preview.png
+scripts/discover*.js
+scripts/shot.js
+
+# 私人配置与记忆（含自动化配置、执行记录，切勿公开）
+.workbuddy/

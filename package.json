@@ -1,0 +1,16 @@
+{
+  "name": "gz-flight-weather-monitor",
+  "version": "1.0.0",
+  "private": false,
+  "description": "广州出发机票低价 + 目的地天气监控：抓取往返低价航线，生成「地图 + 可排序列表」页面，并叠加出行地天气预测。",
+  "scripts": {
+    "pipeline": "node scripts/pipeline.js",
+    "scrape": "node scripts/scrape.js",
+    "weather": "node scripts/weather.js",
+    "build": "node scripts/build.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
