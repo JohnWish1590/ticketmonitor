@@ -6,6 +6,8 @@
 
 > 示例页面（本仓库作者部署的实例）：
 > https://808fb04b1f3746d2af1d71b2f9258f17.gz1.agentos-app.net
+>
+> 源码仓库：https://github.com/a9f7/ticketmonitor （欢迎 fork / 提 PR）
 
 ---
 
