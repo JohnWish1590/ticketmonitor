@@ -213,62 +213,6 @@
       "lat": 33.5904,
       "lng": 130.4017,
       "tz": 9
-    },
-    {
-      "code": "SYD",
-      "city": "悉尼",
-      "region": "other",
-      "lat": -33.8688,
-      "lng": 151.2093,
-      "tz": 10
-    },
-    {
-      "code": "MEL",
-      "city": "墨尔本",
-      "region": "other",
-      "lat": -37.8136,
-      "lng": 144.9631,
-      "tz": 10
-    },
-    {
-      "code": "AKL",
-      "city": "奥克兰",
-      "region": "other",
-      "lat": -36.8485,
-      "lng": 174.7633,
-      "tz": 12
-    },
-    {
-      "code": "LON",
-      "city": "伦敦",
-      "region": "other",
-      "lat": 51.5074,
-      "lng": -0.1278,
-      "tz": 1
-    },
-    {
-      "code": "PAR",
-      "city": "巴黎",
-      "region": "other",
-      "lat": 48.8566,
-      "lng": 2.3522,
-      "tz": 2
-    },
-    {
-      "code": "NYC",
-      "city": "纽约",
-      "region": "other",
-      "lat": 40.7128,
-      "lng": -74.006,
-      "tz": -4
-    },
-    {
-      "code": "LAX",
-      "city": "洛杉矶",
-      "region": "other",
-      "lat": 34.0522,
-      "lng": -118.2437,
-      "tz": -7
     }
   ],
   "alerts": {
