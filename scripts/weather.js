@@ -182,8 +182,11 @@ function grade(s) {
 (async () => {
   const t0 = Date.now();
   const flights = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'flights.json'), 'utf8'));
+  const originList = (Array.isArray(flights.origins) && flights.origins.length)
+    ? flights.origins
+    : (flights.origin ? [flights.origin] : []);
   const cities = [
-    { code: flights.origin.code, city: flights.origin.city, region: 'origin', lat: flights.origin.lat, lng: flights.origin.lng, isOrigin: true },
+    ...originList.map(o => ({ code: o.code, city: o.city, region: 'origin', lat: o.lat, lng: o.lng, isOrigin: true })),
     ...flights.routes.map(r => ({ code: r.code, city: r.city, region: r.region, lat: r.lat, lng: r.lng, tier: r.tier, minPrice: r.minPrice })),
   ];
   const allDays = dateRange(WIN_START, WIN_END);
