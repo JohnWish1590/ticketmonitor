@@ -104,6 +104,8 @@ const payload = {
   genTime,
   origins: ORIGINS,
   window: data.window,
+  tripDuration: data.tripDuration,
+  tiers: data.tiers,
   excludedAirlines: data.excludedAirlines,
   routes: data.routes,
   originCatalog: AIRPORTS,
