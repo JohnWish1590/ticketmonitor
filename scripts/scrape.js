@@ -27,8 +27,21 @@ function resolveOrigins() {
 }
 const ORIGINS = resolveOrigins();
 if (!ORIGINS.length) throw new Error('config 缺少出发地：请在设置页「出发地」至少添加一个（或保留 origin 字段）');
-const WIN_START = CONFIG.window.start;
-const WIN_END = CONFIG.window.end;
+let WIN_START = CONFIG.window.start;
+let WIN_END = CONFIG.window.end;
+// 窗口自动前移：若起始日已过期，整体平移到「明天起」保持原跨度，避免展示过期日期
+(() => {
+  const today = new Date(); today.setUTCHours(0, 0, 0, 0);
+  const startDt = new Date(WIN_START + 'T00:00:00Z');
+  const span = Math.max(1, Math.round((Date.parse(WIN_END) - Date.parse(WIN_START)) / 86400000) || 20);
+  if (isNaN(startDt) || startDt < today) {
+    const ns = new Date(today); ns.setUTCDate(ns.getUTCDate() + 1);
+    WIN_START = ns.toISOString().slice(0, 10);
+    const ne = new Date(ns); ne.setUTCDate(ne.getUTCDate() + span);
+    WIN_END = ne.toISOString().slice(0, 10);
+    console.log('[窗口] 原窗口已过，自动前移为 ' + WIN_START + ' ~ ' + WIN_END);
+  }
+})();
 // 多出发地：ORIGIN/ORIGIN_TZ 在下方 main 循环中按当前出发地赋值
 let ORIGIN = ORIGINS[0] ? ORIGINS[0].code : '';
 let ORIGIN_TZ = ORIGINS[0] ? ORIGINS[0].tz : 8;
@@ -223,49 +236,72 @@ async function stage2(withCal, noCal) {
 }
 
 // ================= 汇总 =================
+// 汇总：以「低价日历」为可靠主数据源（CI 中具体航班接口常被风控限流返回空），
+// 具体航班详情（FlightListSearch）作为可选增强；缺失时退化为日历最优日期组合。
 function build(all, flightsByCode) {
   const rows = [];
   for (const r of all) {
+    const calPrices = (r.pairs || []).map(p => p.price);
+    const hasCal = calPrices.length > 0;
+
+    // 具体航班（可能因限流缺失）
     const groups = flightsByCode[r.code] || [];
-    const options = [];
-    let rawCount = 0, lccCount = 0;
-    for (const g of groups) {
-      for (const it of g.items) {
-        rawCount++;
-        if (it.hasLCC) { lccCount++; continue; }
-        options.push({ ...it, depDate: g.dep, retDate: g.ret });
-      }
+    let rawCount = 0, lccCount = 0; const opts = [];
+    for (const g of groups) for (const it of g.items) {
+      rawCount++;
+      if (it.hasLCC) { lccCount++; continue; }
+      opts.push({ ...it, depDate: g.dep, retDate: g.ret });
     }
-    if (!options.length) continue;
-    // 同价同航班去重
     const seen = new Set();
-    const uniq = options.filter(o => {
+    const uniq = opts.filter(o => {
       const k = o.depDate + o.retDate + o.out.flights.map(f => f.no).join('/') + o.price;
       if (seen.has(k)) return false; seen.add(k); return true;
     }).sort((a, b) => a.price - b.price);
 
-    const best = uniq[0];
-    const tier = best.price < TIER_A ? 'A' : (best.price <= TIER_B ? 'B' : null);
+    const optMin = uniq.length ? uniq[0].price : Infinity;
+    if (!hasCal && !uniq.length) continue;            // 彻底无数据则跳过
+
+    let minPrice, medP, maxP, discountPct;
+    if (hasCal) {
+      minPrice = Math.min(Math.min(...calPrices), optMin);
+      medP = median(calPrices);
+      maxP = Math.max(...calPrices);
+      discountPct = medP > minPrice ? Math.round((1 - minPrice / medP) * 100) : 0;
+    } else {
+      minPrice = optMin; medP = optMin; maxP = optMin; discountPct = 0;
+    }
+
+    const tier = minPrice < TIER_A ? 'A' : (minPrice <= TIER_B ? 'B' : null);
     if (!tier) continue;
     const cap = tier === 'A' ? TIER_A : TIER_B;
 
-    const calPrices = r.pairs.map(p => p.price);
-    const medP = calPrices.length ? median(calPrices) : median(uniq.map(o => o.price));
-    const maxP = calPrices.length ? Math.max(...calPrices) : Math.max(...uniq.map(o => o.price));
+    const datePairsInBudget = hasCal ? r.pairs.filter(p => p.price <= cap).length : 0;
+    const totalPairs = hasCal ? r.pairs.length : 0;
+    const optionCount = uniq.filter(o => o.price <= cap).length;
+
+    const bestPair = hasCal ? [...r.pairs].sort((a, b) => a.price - b.price)[0] : null;
+    const displayOptions = uniq.length ? uniq.slice(0, 10) : [{
+      price: minPrice,
+      depDate: bestPair ? bestPair.dep : (uniq[0] ? uniq[0].depDate : ''),
+      retDate: bestPair ? bestPair.ret : (uniq[0] ? uniq[0].retDate : ''),
+      airlines: [], airlineNames: [], direct: null, bag: null,
+      out: { flights: [], depT: '', arrT: '', stops: null, duration: '' }, back: null,
+      synthetic: true,
+    }];
 
     rows.push({
       code: r.code, city: r.city, region: r.region, lat: r.lat, lng: r.lng, tz: r.tz,
       query: r.query || r.code,
       tier,
-      minPrice: best.price,
+      detailAvailable: uniq.length > 0,
+      minPrice,
       calMedian: medP, calMax: maxP,
-      discountPct: medP > best.price ? Math.round((1 - best.price / medP) * 100) : 0,
-      datePairsInBudget: r.pairs.filter(p => p.price <= cap).length,
-      totalPairs: r.pairs.length,
-      optionCount: uniq.filter(o => o.price <= cap).length,
+      discountPct,
+      datePairsInBudget, totalPairs,
+      optionCount,
       lccFiltered: lccCount,
-      cheapestPairs: [...r.pairs].sort((a, b) => a.price - b.price).slice(0, 10),
-      options: uniq.slice(0, 10),
+      cheapestPairs: hasCal ? [...r.pairs].sort((a, b) => a.price - b.price).slice(0, 10) : [],
+      options: displayOptions,
     });
   }
   return rows;

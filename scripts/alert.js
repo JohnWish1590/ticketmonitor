@@ -110,7 +110,9 @@ async function main() {
     const opt = r.options && r.options[0];
     const dur = opt ? tripDays(opt.depDate, opt.retDate) : '?';
     const seg = opt
-      ? `${opt.depDate} 去 / ${opt.retDate} 回 · ${dur} 天 ${opt.out.flights.map(f => f.no).join('+')} ${opt.airlineNames.join('/')}${opt.direct ? ' 直飞' : ' 含中转'}`
+      ? (opt.synthetic
+          ? `${opt.depDate} 去 / ${opt.retDate} 回 · ${dur} 天（日历特价，具体航班接口限流）`
+          : `${opt.depDate} 去 / ${opt.retDate} 回 · ${dur} 天 ${opt.out.flights.map(f => f.no).join('+')} ${opt.airlineNames.join('/')}${opt.direct ? ' 直飞' : ' 含中转'}`)
       : '';
     const from = r.originCity ? `【${r.originCity}】` : '';
     return `- ${from}**${r.city}(${r.code})** ¥${r.minPrice}（低于中位价 ${r.discountPct || 0}%）｜${seg}`;

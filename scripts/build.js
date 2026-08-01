@@ -219,6 +219,7 @@ input[type=text]{flex:1}
 .leg .fno{font-weight:600;color:var(--blue)}
 .leg .t{font-variant-numeric:tabular-nums}
 .alts{margin-top:6px;font-size:11px;color:var(--tx2)}
+.note{font-size:11.5px;color:var(--tx2);background:#f5f5f7;border-radius:8px;padding:7px 9px;line-height:1.6}
 .alts table{width:100%;border-collapse:collapse}
 .alts td{padding:2px 4px;border-top:1px solid var(--line2)}
 .alts td:last-child{text-align:right;font-weight:600;color:var(--red);font-variant-numeric:tabular-nums}
@@ -527,29 +528,36 @@ function fmtLeg(o){
 }
 function itemHTML(r){
   const o=r.options[0];
+  const noDetail=!r.detailAvailable;
   const alts=r.cheapestPairs.slice(0,6).map(p=>'<tr><td>'+p.dep.slice(5)+' 去 · '+p.ret.slice(5)+' 回</td><td>¥'+p.price+'</td></tr>').join('');
-  const others=r.options.slice(1,5).map(x=>'<tr><td>'+x.depDate.slice(5)+'/'+x.retDate.slice(5)+' '+x.out.flights.map(f=>f.no).join('+')+' '+x.airlineNames.join('/')+'</td><td>¥'+x.price+'</td></tr>').join('');
+  const others=noDetail?'':r.options.slice(1,5).map(x=>'<tr><td>'+x.depDate.slice(5)+'/'+x.retDate.slice(5)+' '+x.out.flights.map(f=>f.no).join('+')+' '+x.airlineNames.join('/')+'</td><td>¥'+x.price+'</td></tr>').join('');
+  const badgeLine=noDetail
+    ? '<span class="badge b">日历特价</span>'
+    : ('<span class="badge '+(o.direct?'g':'')+'">'+(o.direct?'直飞往返':'含中转')+'</span>'+
+       '<span class="badge">'+o.airlineNames.join(' / ')+'</span>'+
+       (o.bag?'<span class="badge b">含托运</span>':''));
+  const legs=noDetail
+    ? '<div class="legs"><div class="note">🗓 日历低价 · 具体航班接口暂时限流，仅展示窗口内最优日期组合（含全部航司）</div></div>'
+    : '<div class="legs">'+fmtLeg(o)+
+      (others?'<div class="alts"><div style="color:#8b93a1;margin:5px 0 2px">同航线其他航班</div><table>'+others+'</table></div>':'')+
+      (alts?'<div class="alts"><div style="color:#8b93a1;margin:5px 0 2px">窗口期内更多低价日期组合（含全部航司）</div><table>'+alts+'</table></div>':'')+
+    '</div>';
   return '<div class="item" data-id="'+r._id+'">'+
     '<div class="it-top"><div>'+
       '<div class="it-city">'+r.city+'<span class="code">'+r.code+'</span></div>'+
       '<div class="it-line">'+
         (r.originCode?'<span class="badge b">自 '+(r.originCity||r.originCode)+' '+r.originCode+'</span>':'')+
         '<span>'+o.depDate.slice(5)+' 去 · '+o.retDate.slice(5)+' 回 · '+tripDays(o.depDate,o.retDate)+' 天</span>'+
-        '<span class="badge '+(o.direct?'g':'')+'">'+(o.direct?'直飞往返':'含中转')+'</span>'+
-        '<span class="badge">'+o.airlineNames.join(' / ')+'</span>'+
-        (o.bag?'<span class="badge b">含托运</span>':'')+
+        badgeLine+
       '</div>'+
       '<div class="it-line">'+
         (r.discountPct>0?'<span class="badge r">低于中位价 '+r.discountPct+'%</span>':'')+
-        '<span class="badge">'+r.optionCount+' 个航次可选</span>'+
+        (noDetail?'<span class="badge">日历估算</span>':'<span class="badge">'+r.optionCount+' 个航次可选</span>')+
         (r.datePairsInBudget?'<span class="badge">'+r.datePairsInBudget+' 组日期在预算内</span>':'')+
         (r.weather?'<span class="badge" style="background:'+W[r.weather.grade].bg+';color:'+W[r.weather.grade].color+'">☁ '+W[r.weather.grade].label+' · 晴'+r.weather.dryDays+'/'+r.weather.days+'</span>':'')+
       '</div>'+
     '</div><div class="it-price">¥'+r.minPrice+'<small>往返/人</small></div></div>'+
-    '<div class="legs">'+fmtLeg(o)+
-      (others?'<div class="alts"><div style="color:#8b93a1;margin:5px 0 2px">同航线其他航班</div><table>'+others+'</table></div>':'')+
-      (alts?'<div class="alts"><div style="color:#8b93a1;margin:5px 0 2px">窗口期内更多低价日期组合（含全部航司）</div><table>'+alts+'</table></div>':'')+
-    '</div></div>';
+    legs+'</div>';
 }
 
 function filtered(){
@@ -592,15 +600,16 @@ function select(id,fromMap,quiet){
 function pickCard(tier,kind,code){
   const r=byKey[code]; if(!r) return '';
   const o=r.options[0];
-  const extra= kind==='cheapest'?('最低往返 · '+(o.direct?'直飞':'含中转'))
+  const noDetail=!r.detailAvailable;
+  const extra= kind==='cheapest'?(noDetail?'最低日历价':(o.direct?'直飞':'含中转'))
     : kind==='discount'?('<em>低于中位价 '+r.discountPct+'%</em> · 中位 ¥'+r.calMedian)
-    : ('<em>'+r.optionCount+' 个航次 / '+r.datePairsInBudget+' 组日期</em>');
+    : (noDetail?'<em>'+r.datePairsInBudget+' 组日期在预算内</em>':'<em>'+r.optionCount+' 个航次 / '+r.datePairsInBudget+' 组日期</em>');
   return     '<div class="pick '+tier.toLowerCase()+'" data-id="'+code+'">'+
     '<div class="pick-hd"><span class="tag '+tier.toLowerCase()+'">'+(tier==='A'?'<¥'+DATA.tiers.a:'¥'+DATA.tiers.a+'-'+DATA.tiers.b)+'</span>'+PICK_LABEL[kind]+'</div>'+
     '<div class="pick-city">'+r.city+'<span>'+r.code+'</span></div>'+
     '<div class="pick-price">¥'+r.minPrice+'<small> /人往返</small></div>'+
     '<div class="pick-sub">'+o.depDate.slice(5)+' 去 · '+o.retDate.slice(5)+' 回 · '+tripDays(o.depDate,o.retDate)+' 天<br>'+
-      o.out.flights.map(f=>f.no).join('+')+' '+o.airlineNames.join('/')+'<br>'+extra+'</div></div>';
+      (noDetail?'日历低价':(o.out.flights.map(f=>f.no).join('+')+' '+o.airlineNames.join('/')))+'<br>'+extra+'</div></div>';
 }
 function renderPicks(){
   let h='';
