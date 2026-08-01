@@ -792,16 +792,26 @@ document.getElementById('testPush').onclick = async () => {
   const key = document.getElementById('scKey').value.trim();
   if (!key) { setMsg('请先填写 Server酱 SendKey。', false); return; }
   setMsg('正在发送测试推送…', true);
+  const body = new URLSearchParams({ title: '✈️ 机票锁定 · 推送测试', desp: '若你收到这条消息，说明 Server酱 Key 配置成功 ✅\\n价格达标时会自动推送微信。' }).toString();
   try {
     const r = await fetch('https://sctapi.ftqq.com/' + key + '.send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({ title: '✈️ 机票锁定 · 推送测试', desp: '若你收到这条消息，说明 Server酱 Key 配置成功 ✅\\n价格达标时会自动推送微信。' }).toString(),
+      body,
     });
     const j = await r.json().catch(() => ({}));
-    if (r.ok && j.code === 0) setMsg('✅ 测试推送成功，请查收微信。', true);
-    else throw new Error(j.message || ('HTTP ' + r.status));
-  } catch (e) { setMsg('❌ ' + e.message, false); }
+    if (r.ok && j.code === 0) { setMsg('✅ 测试推送成功，请查收微信。', true); return; }
+    throw new Error(j.message || ('HTTP ' + r.status));
+  } catch (e) {
+    // Server酱 接口可能不带 CORS 头，浏览器直接请求会被拦；用 no-cors 兜底发送（无法读回结果）
+    try {
+      await fetch('https://sctapi.ftqq.com/' + key + '.send', {
+        method: 'POST', mode: 'no-cors',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body,
+      });
+      setMsg('✅ 请求已发出（跨域限制无法读回结果，请查收微信确认）。', true);
+    } catch (e2) { setMsg('❌ 推送失败：' + e.message, false); }
+  }
 };
 </script>
 </body>
