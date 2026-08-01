@@ -107,11 +107,12 @@ function fmtLocal(ms, tzHours) {
 // ================= Stage 1：低价日历 =================
 async function stage1() {
   console.log('[1/3] 扫描 ' + DESTS.length + ' 条航线的往返低价日历 ...');
-  const res = await pool(DESTS, 6, async (d) => {
+  const res = await pool(DESTS, 4, async (d) => {
+    await sleep(150);
     const codes = [d.code, d.alt].filter(Boolean);
     for (const c of codes) {
       try {
-        const pairs = await retry(() => api.lowPriceCalendar(ORIGIN, c, WIN_START, WIN_END), 2);
+        const pairs = await retry(() => api.lowPriceCalendar(ORIGIN, c, WIN_START, WIN_END), 3, 1500);
         const valid = pairs.filter(p => p.dep >= WIN_START && p.dep <= WIN_END && p.ret >= p.dep && p.ret <= WIN_END && okDuration(p.dep, p.ret));
         if (valid.length) return { ...d, query: c, pairs: valid };
       } catch (e) { /* try next */ }
