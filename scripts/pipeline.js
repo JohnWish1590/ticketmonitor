@@ -27,6 +27,7 @@ function run(script) {
 run('scrape.js');
 run('weather.js');
 run('build.js');
+run('alert.js');    // 触发式实时特价提醒（Server酱）；未配置 key 时自动跳过
 
 // 同步到部署目录
 fs.mkdirSync(path.join(ROOT, 'dist'), { recursive: true });

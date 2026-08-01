@@ -36,7 +36,7 @@ async function lowPriceCalendar(dCity, aCity, dDate, aDate) {
   const payload = {
     dCity, aCity, dDate, aDate,
     flightWayType: 'RT',
-    departureAirport: '', arrivalAirport: '',
+    departureAirport: dCity, arrivalAirport: '',
     cabinClass: 'Economy', transferType: 'ANY',
     searchInfo: { travelerNum: { adult: 1, child: 0, infant: 0 } },
     abtList: [], offSet: 30, startInterval: 0, endInterval: 30,
@@ -68,7 +68,7 @@ async function flightList(dCity, aCity, depDate, retDate) {
       grade: 1, realGrade: 1, tripType: 2, journeyNo: 1,
       passengerInfoType: { adultCount: 1, childCount: 0, infantCount: 0 },
       journeyInfoTypes: [
-        { journeyNo: 1, departDate: depDate, departCode: dCity, arriveCode: aCity, departAirport: '', arriveAirport: '' },
+        { journeyNo: 1, departDate: depDate, departCode: dCity, arriveCode: aCity, departAirport: dCity, arriveAirport: aCity },
         { journeyNo: 2, departDate: retDate, departCode: aCity, arriveCode: dCity, departAirport: '', arriveAirport: '' },
       ],
       policyId: null,

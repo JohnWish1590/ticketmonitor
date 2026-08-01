@@ -15,3 +15,7 @@ scripts/shot.js
 
 # 私人配置与记忆（含自动化配置、执行记录，切勿公开）
 .workbuddy/
+
+# 本地私密配置（含 Server酱 SendKey，切勿公开 / 不要提交）
+.env
+.env.local

@@ -1,0 +1,184 @@
+{
+  "origins": [
+    {
+      "code": "SHA",
+      "city": "上海",
+      "lat": 31.2304,
+      "lng": 121.4737,
+      "tz": 8
+    }
+  ],
+  "window": {
+    "start": "2026-07-31",
+    "end": "2026-08-20"
+  },
+  "tripMinDays": 5,
+  "tripMaxDays": 9,
+  "tierA": 1000,
+  "tierB": 2000,
+  "excludeCarriers": [
+    "9C",
+    "AQ",
+    "PN",
+    "KN",
+    "8L",
+    "DR",
+    "GJ",
+    "UQ",
+    "GY"
+  ],
+  "destinations": [
+    {
+      "code": "BKK",
+      "city": "曼谷",
+      "region": "asia",
+      "lat": 13.7563,
+      "lng": 100.5018,
+      "tz": 7
+    },
+    {
+      "code": "HKT",
+      "city": "普吉岛",
+      "region": "asia",
+      "lat": 7.8804,
+      "lng": 98.3923,
+      "tz": 7
+    },
+    {
+      "code": "CNX",
+      "city": "清迈",
+      "region": "asia",
+      "lat": 18.7883,
+      "lng": 98.9853,
+      "tz": 7
+    },
+    {
+      "code": "KUL",
+      "city": "吉隆坡",
+      "region": "asia",
+      "lat": 3.139,
+      "lng": 101.6869,
+      "tz": 8
+    },
+    {
+      "code": "BKI",
+      "city": "亚庇",
+      "region": "asia",
+      "lat": 5.9804,
+      "lng": 116.0735,
+      "tz": 8
+    },
+    {
+      "code": "PEN",
+      "city": "槟城",
+      "region": "asia",
+      "lat": 5.4141,
+      "lng": 100.3288,
+      "tz": 8
+    },
+    {
+      "code": "CGK",
+      "city": "雅加达",
+      "region": "asia",
+      "lat": -6.2088,
+      "lng": 106.8456,
+      "tz": 7,
+      "alt": "JKT"
+    },
+    {
+      "code": "SGN",
+      "city": "胡志明市",
+      "region": "asia",
+      "lat": 10.8231,
+      "lng": 106.6297,
+      "tz": 7
+    },
+    {
+      "code": "DAD",
+      "city": "岘港",
+      "region": "asia",
+      "lat": 16.0544,
+      "lng": 108.2022,
+      "tz": 7
+    },
+    {
+      "code": "CXR",
+      "city": "芽庄",
+      "region": "asia",
+      "lat": 12.2388,
+      "lng": 109.1967,
+      "tz": 7
+    },
+    {
+      "code": "PQC",
+      "city": "富国岛",
+      "region": "asia",
+      "lat": 10.227,
+      "lng": 103.967,
+      "tz": 7
+    },
+    {
+      "code": "PUS",
+      "city": "釜山",
+      "region": "asia",
+      "lat": 35.1796,
+      "lng": 129.0756,
+      "tz": 9
+    },
+    {
+      "code": "TYO",
+      "city": "东京",
+      "region": "asia",
+      "lat": 35.6762,
+      "lng": 139.6503,
+      "tz": 9
+    },
+    {
+      "code": "OSA",
+      "city": "大阪",
+      "region": "asia",
+      "lat": 34.6937,
+      "lng": 135.5023,
+      "tz": 9
+    },
+    {
+      "code": "NGO",
+      "city": "名古屋",
+      "region": "asia",
+      "lat": 35.1815,
+      "lng": 136.9066,
+      "tz": 9
+    },
+    {
+      "code": "FUK",
+      "city": "福冈",
+      "region": "asia",
+      "lat": 33.5904,
+      "lng": 130.4017,
+      "tz": 9
+    },
+    {
+      "code": "CTS",
+      "city": "札幌",
+      "region": "asia",
+      "lat": 43.0618,
+      "lng": 141.3545,
+      "tz": 9,
+      "alt": "SPK"
+    },
+    {
+      "code": "OKA",
+      "city": "冲绳",
+      "region": "asia",
+      "lat": 26.2124,
+      "lng": 127.6809,
+      "tz": 9
+    }
+  ],
+  "alerts": {
+    "enabled": true,
+    "maxPrice": 1000,
+    "minDiscount": 25,
+    "cooldownHours": 24
+  }
+}

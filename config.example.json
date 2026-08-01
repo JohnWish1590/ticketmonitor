@@ -1,0 +1,19 @@
+{
+  "origins": [
+    { "code": "SHA", "city": "上海·虹桥", "lat": 31.1979, "lng": 121.3364, "tz": 8 },
+    { "code": "PVG", "city": "上海·浦东", "lat": 31.1443, "lng": 121.8083, "tz": 8 }
+  ],
+  "window": { "start": "2026-07-31", "end": "2026-08-31" },
+  "tripMinDays": 5,
+  "tripMaxDays": 9,
+  "tierA": 1000,
+  "tierB": 2000,
+  "excludeCarriers": ["9C", "AQ", "PN", "KN", "8L", "DR", "GJ", "UQ", "GY"],
+  "alerts": {
+    "enabled": true,
+    "maxPrice": 1000,
+    "minDiscount": 25,
+    "cooldownHours": 24,
+    "sendKey": ""
+  }
+}

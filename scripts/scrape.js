@@ -1,16 +1,41 @@
 const fs = require('fs');
 const path = require('path');
 const api = require('./api');
-const DESTS = require('./destinations');
 
 const ROOT = path.resolve(__dirname, '..');
-const WIN_START = '2026-07-31';
-const WIN_END = '2026-08-20';
-const ORIGIN = 'CAN';
-const ORIGIN_TZ = 8;
-// 行程时长（去程 -> 回程 的天数差），单位：天
-const TRIP_MIN_DAYS = 5;
-const TRIP_MAX_DAYS = 9;
+
+// ---- 读取 config.json（由设置页面 `npm run settings` 维护）----
+function loadConfig() {
+  const p = path.join(ROOT, 'config.json');
+  if (!fs.existsSync(p)) {
+    throw new Error('缺少 config.json：请在 GitHub Pages 设置页（settings.html）保存一次，或复制 config.example.json 为 config.json');
+  }
+  return JSON.parse(fs.readFileSync(p, 'utf8'));
+}
+const CONFIG = loadConfig();
+
+// 监控目的地：config.destinations 若配置则用之（设置页勾选），否则回退默认全量清单
+const DESTS = (CONFIG.destinations && Array.isArray(CONFIG.destinations) && CONFIG.destinations.length)
+  ? CONFIG.destinations
+  : require('./destinations');
+
+// 多出发地：origins 数组（设置页多出发地列表）；兼容旧版单 origin 对象
+function resolveOrigins() {
+  if (Array.isArray(CONFIG.origins) && CONFIG.origins.length) return CONFIG.origins;
+  if (CONFIG.origin && CONFIG.origin.code) return [CONFIG.origin];
+  return [];
+}
+const ORIGINS = resolveOrigins();
+if (!ORIGINS.length) throw new Error('config 缺少出发地：请在设置页「出发地」至少添加一个（或保留 origin 字段）');
+const WIN_START = CONFIG.window.start;
+const WIN_END = CONFIG.window.end;
+// 多出发地：ORIGIN/ORIGIN_TZ 在下方 main 循环中按当前出发地赋值
+let ORIGIN = ORIGINS[0] ? ORIGINS[0].code : '';
+let ORIGIN_TZ = ORIGINS[0] ? ORIGINS[0].tz : 8;
+const TRIP_MIN_DAYS = CONFIG.tripMinDays;
+const TRIP_MAX_DAYS = CONFIG.tripMaxDays;
+const TIER_A = CONFIG.tierA;
+const TIER_B = CONFIG.tierB;
 
 function tripDays(dep, ret) {
   return Math.round((Date.parse(ret + 'T00:00:00Z') - Date.parse(dep + 'T00:00:00Z')) / 86400000);
@@ -20,9 +45,15 @@ function okDuration(dep, ret) {
   return d >= TRIP_MIN_DAYS && d <= TRIP_MAX_DAYS;
 }
 
-// 国内低成本（廉价）航空 —— 按要求排除
-const LCC = new Set(['9C', 'AQ', 'PN', 'KN', '8L', 'DR', 'GJ', 'UQ', 'GY']);
+function addDays(s, n) {
+  const d = new Date(s + 'T00:00:00Z');
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+// 国内低成本（廉价）航空代码 -> 名称（名称固定；是否排除由 config.excludeCarriers 决定）
 const LCC_NAME = { '9C': '春秋航空', 'AQ': '九元航空', 'PN': '西部航空', 'KN': '中国联合航空', '8L': '祥鹏航空', 'DR': '瑞丽航空', 'GJ': '长龙航空', 'UQ': '乌鲁木齐航空', 'GY': '多彩贵州航空' };
+const LCC = new Set((CONFIG.excludeCarriers || []).filter(c => LCC_NAME[c]));
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
@@ -67,7 +98,7 @@ async function stage1() {
     const codes = [d.code, d.alt].filter(Boolean);
     for (const c of codes) {
       try {
-        const pairs = await retry(() => api.lowPriceCalendar(ORIGIN, c, '2026-08-05', '2026-08-12'), 2);
+        const pairs = await retry(() => api.lowPriceCalendar(ORIGIN, c, WIN_START, WIN_END), 2);
         const valid = pairs.filter(p => p.dep >= WIN_START && p.dep <= WIN_END && p.ret >= p.dep && p.ret <= WIN_END && okDuration(p.dep, p.ret));
         if (valid.length) return { ...d, query: c, pairs: valid };
       } catch (e) { /* try next */ }
@@ -167,9 +198,9 @@ function pickDates(route) {
 }
 
 const FALLBACK_DATES = [
-  { dep: '2026-08-03', ret: '2026-08-09' },
-  { dep: '2026-08-08', ret: '2026-08-15' },
-  { dep: '2026-08-13', ret: '2026-08-19' },
+  { dep: addDays(WIN_START, 3), ret: addDays(WIN_START, 9) },
+  { dep: addDays(WIN_START, 8), ret: addDays(WIN_START, 15) },
+  { dep: addDays(WIN_START, 13), ret: addDays(WIN_START, 19) },
 ];
 
 async function stage2(withCal, noCal) {
@@ -214,9 +245,9 @@ function build(all, flightsByCode) {
     }).sort((a, b) => a.price - b.price);
 
     const best = uniq[0];
-    const tier = best.price < 1000 ? 'A' : (best.price <= 2000 ? 'B' : null);
+    const tier = best.price < TIER_A ? 'A' : (best.price <= TIER_B ? 'B' : null);
     if (!tier) continue;
-    const cap = tier === 'A' ? 1000 : 2000;
+    const cap = tier === 'A' ? TIER_A : TIER_B;
 
     const calPrices = r.pairs.map(p => p.price);
     const medP = calPrices.length ? median(calPrices) : median(uniq.map(o => o.price));
@@ -240,15 +271,15 @@ function build(all, flightsByCode) {
   return rows;
 }
 
-// Stage 2.5：对「有希望跌破 1000」的航线加采样
+// Stage 2.5：对「有希望跌破 A 档阈值」的航线加采样
 async function stage25(all, byCode) {
   const extra = [];
   for (const r of all) {
     if (!r.pairs.length) continue;
     const got = (byCode[r.code] || []);
     const best = Math.min(...got.flatMap(g => g.items.filter(i => !i.hasLCC).map(i => i.price)).concat([99999]));
-    if (best <= 1000 || best > 1500) continue;
-    if (median(r.pairs.map(p => p.price)) > 1250) continue;
+    if (best <= TIER_A || best > TIER_A * 1.5) continue;
+    if (median(r.pairs.map(p => p.price)) > TIER_A * 1.25) continue;
     const tried = new Set(got.map(g => g.dep + g.ret));
     const cands = [...r.pairs].sort((a, b) => a.price - b.price)
       .filter(p => !tried.has(p.dep + p.ret)).slice(0, 30);
@@ -272,22 +303,31 @@ async function stage25(all, byCode) {
 
 (async () => {
   const t0 = Date.now();
-  const { withCal, noCal } = await stage1();
-  let flights = await stage2(withCal, noCal);
-  flights = await stage25([...withCal, ...noCal], flights);
-  const rows = build([...withCal, ...noCal], flights);
-  rows.sort((a, b) => a.minPrice - b.minPrice);
+  const allRows = [];
+  for (const O of ORIGINS) {
+    ORIGIN = O.code; ORIGIN_TZ = O.tz;
+    console.log('=== 出发地 ' + (O.city || O.code) + ' (' + O.code + ') ===');
+    const { withCal, noCal } = await stage1();
+    let flights = await stage2(withCal, noCal);
+    flights = await stage25([...withCal, ...noCal], flights);
+    const rows = build([...withCal, ...noCal], flights);
+    rows.forEach(r => { r.originCode = O.code; r.originCity = O.city; });
+    allRows.push(...rows);
+  }
+  allRows.sort((a, b) => a.minPrice - b.minPrice);
   console.log('[3/3] 生成数据文件 ...');
   const payload = {
     generatedAt: new Date().toISOString(),
-    origin: { code: 'CAN', city: '广州', lat: 23.1291, lng: 113.2644 },
+    origins: ORIGINS.map(o => ({ code: o.code, city: o.city, lat: o.lat, lng: o.lng, tz: o.tz })),
     window: { start: WIN_START, end: WIN_END },
     tripDuration: { min: TRIP_MIN_DAYS, max: TRIP_MAX_DAYS },
+    tiers: { a: TIER_A, b: TIER_B },
     excludedAirlines: [...LCC].map(c => ({ code: c, name: LCC_NAME[c] })),
-    routes: rows,
+    routes: allRows,
   };
   fs.mkdirSync(path.join(ROOT, 'data'), { recursive: true });
   fs.writeFileSync(path.join(ROOT, 'data', 'flights.json'), JSON.stringify(payload));
-  console.log('[完成] 命中航线 ' + rows.length + '，耗时 ' + Math.round((Date.now() - t0) / 1000) + 's');
-  console.log('  A档(<¥1000): ' + rows.filter(r => r.tier === 'A').length + ' 条 | B档(¥1000-2000): ' + rows.filter(r => r.tier === 'B').length + ' 条');
+  console.log('[完成] 命中航线 ' + allRows.length + '，耗时 ' + Math.round((Date.now() - t0) / 1000) + 's');
+  const aN = allRows.filter(r => r.tier === 'A').length, bN = allRows.filter(r => r.tier === 'B').length;
+  console.log('  A档(<¥' + TIER_A + '): ' + aN + ' 条 | B档(¥' + TIER_A + '-' + TIER_B + '): ' + bN + ' 条');
 })();

@@ -4,6 +4,17 @@ const ROOT = path.resolve(__dirname, '..');
 
 const data = JSON.parse(fs.readFileSync(path.join(ROOT, 'data', 'flights.json'), 'utf8'));
 
+// 读取仓库根目录的 config.json（出发地 / 阈值 / Server酱 等用户配置），用于把提醒设置回填到页面
+const CFG = (() => {
+  try { return JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8')); }
+  catch (e) { return {}; }
+})();
+
+// 出发地：优先用 scrape 输出的 origins 数组；兼容旧版单 origin 对象
+const ORIGINS = (data.origins && Array.isArray(data.origins) && data.origins.length)
+  ? data.origins
+  : (data.origin ? [data.origin] : []);
+
 // 航司名称补全 / 清洗
 const AL = {
   '5J': '宿务太平洋', 'AK': '亚航', 'FD': '泰国亚航', 'D7': '亚航X', 'TR': '酷航', 'VJ': '越捷航空',
@@ -86,7 +97,7 @@ const genTime = new Date(new Date(data.generatedAt).getTime() + 8 * 3600 * 1000)
 const payload = {
   generatedAt: data.generatedAt,
   genTime,
-  origin: data.origin,
+  origins: ORIGINS,
   window: data.window,
   excludedAirlines: data.excludedAirlines,
   routes: data.routes,
@@ -95,28 +106,32 @@ const payload = {
     B: P.B ? { cheapest: P.B.cheapest.code, discount: P.B.discount.code, most: P.B.most.code } : null,
   },
   weather: weatherPayload,
+  alerts: (CFG.alerts || {}),
 };
+
+// 出发地标题：多出发地时拼成「上海(SHA) / 北京(PEK)」形式
+const originTitle = ORIGINS.map(o => (o.city || o.code) + '(' + o.code + ')').join(' / ');
 
 const html = `<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>广州出发 · 往返机票监控 (7/31 - 8/20)</title>
+<title>机票锁定 · 全国机票低价监控</title>
 <style>${leafletCss}</style>
 <style>
 :root{
-  --bg:#f5f6f8; --panel:#ffffff; --line:#e4e7ec; --line2:#eef0f3;
-  --tx:#1b1f26; --tx2:#5c6470; --tx3:#8b93a1;
-  --red:#e02b3c; --red-soft:#fdecee;
-  --amber:#e08a1e; --amber-soft:#fdf3e4;
-  --blue:#2563d9; --blue-soft:#eaf0fd;
-  --green:#0f9960;
+  --bg:#f5f5f7; --panel:#ffffff; --line:#e3e3e8; --line2:#f0f0f2;
+  --tx:#1d1d1f; --tx2:#6e6e73; --tx3:#86868b;
+  --red:#e0243c; --red-soft:#fdebed;
+  --amber:#b7791f; --amber-soft:#fbf3e3;
+  --blue:#185fa5; --blue-soft:#eaf1f8;
+  --green:#0a8a4a;
 }
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+*{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
   background:var(--bg);color:var(--tx);font-size:13px;line-height:1.5}
-.wrap{max-width:1680px;margin:0 auto;padding:14px 16px 24px}
+.wrap{max-width:1680px;margin:0 auto;padding:18px 20px 28px}
 
 /* ---- header ---- */
 header{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:12px}
@@ -253,23 +268,81 @@ input[type=text]{flex:1}
 .wsrc a:hover{text-decoration:underline}
 .wsrc .sdesc{color:var(--tx3);font-size:10.5px}
 .wtag{font-size:9.5px;padding:0 5px;border-radius:3px;background:#eef0f3;color:var(--tx3);margin-left:4px}
+
+/* ---- 设置按钮 / 筛选标签 ---- */
+.settings-btn{appearance:none;border:1px solid var(--line);background:#fff;color:var(--tx);
+  font-size:12.5px;font-weight:600;padding:8px 15px;border-radius:980px;cursor:pointer;transition:.15s;white-space:nowrap}
+.settings-btn:hover{border-color:#c9c9d0;background:#fafafa}
+.settings-btn:active{transform:scale(.98)}
+.flabel{font-size:11px;font-weight:600;color:var(--tx3);margin:2px 0 -2px;letter-spacing:.2px}
+
+/* ---- 提醒设置弹窗 ---- */
+.modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.32);backdrop-filter:saturate(180%) blur(8px);
+  -webkit-backdrop-filter:saturate(180%) blur(8px);display:flex;align-items:center;justify-content:center;
+  padding:16px;z-index:2000;animation:fade .18s ease}
+.modal-mask[hidden]{display:none}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.modal{width:100%;max-width:460px;background:#fff;border-radius:18px;box-shadow:0 22px 60px rgba(0,0,0,.22);
+  max-height:90vh;display:flex;flex-direction:column;overflow:hidden;animation:pop .2s ease}
+@keyframes pop{from{transform:translateY(8px) scale(.98);opacity:.6}to{transform:none;opacity:1}}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--line2)}
+.modal-hd h3{font-size:16px;font-weight:700}
+.modal-x{appearance:none;border:none;background:none;font-size:22px;line-height:1;color:var(--tx3);cursor:pointer;padding:0 4px}
+.modal-x:hover{color:var(--tx)}
+.modal-body{padding:16px 18px;overflow-y:auto}
+.fgroup{margin-bottom:14px}
+.fgroup > label{display:block;font-size:12.5px;font-weight:600;color:var(--tx);margin-bottom:6px}
+.fgroup > label a{font-weight:500;color:var(--blue);text-decoration:none;font-size:11.5px;margin-left:4px}
+.fgroup > label a:hover{text-decoration:underline}
+.fgroup input[type=text],.fgroup input[type=password],.fgroup input[type=number]{
+  width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13px;background:#fff;color:var(--tx);outline:none;font-family:inherit}
+.fgroup input:focus{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft)}
+.fgroup .row2{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.fgroup .row2 > div{display:flex;flex-direction:column;gap:4px}
+.fgroup .row2 label{font-size:11px;color:var(--tx2);margin:0;font-weight:500}
+.switch{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;color:var(--tx);cursor:pointer}
+.switch input{width:16px;height:16px;accent-color:var(--blue)}
+.hint{font-size:11px;color:var(--tx3);line-height:1.55;margin-top:6px}
+.hint code{background:#f0f0f2;padding:0 4px;border-radius:4px;font-size:10.5px}
+.setmsg{font-size:12px;line-height:1.5;min-height:18px;margin-top:2px}
+.setmsg.ok{color:var(--green)}
+.setmsg.err{color:var(--red)}
+.modal-ft{display:flex;gap:10px;padding:14px 18px;border-top:1px solid var(--line2);background:#fbfbfd}
+.btn{appearance:none;border:1px solid var(--line);border-radius:980px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:.15s;font-family:inherit}
+.btn.ghost{background:#fff;color:var(--tx2)}
+.btn.ghost:hover{border-color:#c9c9d0}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff;margin-left:auto}
+.btn.primary:hover{background:#134e88}
+.btn:active{transform:scale(.98)}
+
+/* ---- 手机适配 ---- */
+@media(max-width:560px){
+  .wrap{padding:14px 14px 22px}
+  h1{font-size:17px}
+  header{flex-direction:column;align-items:stretch;gap:10px}
+  .settings-btn{width:100%}
+  .picks{grid-template-columns:repeat(2,1fr)}
+  .fgroup .row2{grid-template-columns:1fr 1fr}
+  .modal{border-radius:16px}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <div>
-      <h1>广州 (CAN) 出发 · 往返机票监控<small>单人往返含税总价 · 经济舱</small></h1>
-      <div class="meta" style="margin-top:6px">
-        <span class="pill">出行窗口 <b>2026-07-31 ~ 08-20</b></span>
-        <span class="pill">行程时长 <b>5 ~ 9 天</b></span>
+      <h1>机票锁定<small>全国机票低价监控 · 自选出发地</small></h1>
+      <div class="meta" style="margin-top:8px">
+        <span class="pill">出行窗口 <b>${data.window.start} ~ ${data.window.end.slice(5)}</b></span>
+        <span class="pill">行程时长 <b>${data.tripDuration.min} ~ ${data.tripDuration.max} 天</b></span>
         <span class="pill">数据更新 <b>${genTime}</b></span>
         <span class="pill">命中航线 <b id="statAll">-</b></span>
-        <span class="pill" style="background:var(--red-soft);border-color:#f6cdd2"><b id="statA">-</b> 条 &lt; ¥1000</span>
-        <span class="pill" style="background:var(--amber-soft);border-color:#f3ddb8"><b id="statB">-</b> 条 ¥1000~2000</span>
+        <span class="pill" style="background:var(--red-soft);border-color:#f6cdd2"><b id="statA">-</b> 条 &lt; ¥${data.tiers.a}</span>
+        <span class="pill" style="background:var(--amber-soft);border-color:#f3ddb8"><b id="statB">-</b> 条 ¥${data.tiers.a}~${data.tiers.b}</span>
         <span class="pill warn">已剔除春秋/九元等国内廉价航空</span>
       </div>
     </div>
+    <button id="openSettings" class="settings-btn" type="button">⚙ 提醒设置</button>
   </header>
 
   <div class="picks" id="picks"></div>
@@ -278,18 +351,24 @@ input[type=text]{flex:1}
     <div class="card"><div class="map-wrap">
       <div id="map"></div>
       <div class="map-legend">
-        <div><span class="dot" style="background:#e02b3c"></span> 往返 &lt; ¥1000</div>
-        <div><span class="dot" style="background:#e08a1e"></span> 往返 ¥1000 ~ ¥2000</div>
+        <div><span class="dot" style="background:#e02b3c"></span> 往返 &lt; ¥${data.tiers.a}</div>
+        <div><span class="dot" style="background:#e08a1e"></span> 往返 ¥${data.tiers.a} ~ ¥${data.tiers.b}</div>
         <div style="color:#8b93a1;margin-top:3px">圆点越大＝可选航班/日期越多</div>
       </div>
     </div></div>
 
     <div class="card">
       <div class="list-hd">
+        <div class="flabel">出发地（按机场）</div>
+        <div class="chips" id="origins"></div>
+        <div class="flabel">目的地（按城市）</div>
+        <div class="chips" id="destinations"></div>
+        <div class="flabel">区域</div>
+        <div class="chips" id="regions"></div>
         <div class="tabs">
           <div class="tab on" data-tier="all">全部</div>
-          <div class="tab a" data-tier="A">&lt; ¥1000</div>
-          <div class="tab b" data-tier="B">¥1000 ~ 2000</div>
+          <div class="tab a" data-tier="A">&lt; ¥${data.tiers.a}</div>
+          <div class="tab b" data-tier="B">¥${data.tiers.a} ~ ${data.tiers.b}</div>
         </div>
         <div class="row2">
           <select id="sort">
@@ -300,7 +379,6 @@ input[type=text]{flex:1}
           </select>
           <input type="text" id="q" placeholder="搜索城市 / 三字码">
         </div>
-        <div class="chips" id="regions"></div>
         <div class="count" id="cnt"></div>
       </div>
       <div id="list"></div>
@@ -312,7 +390,7 @@ input[type=text]{flex:1}
       <h2>☁️ 目的地天气预测<small>出行窗口内降雨分级 · 7/31–8/31 全程预报</small></h2>
       <div class="meta">
         <span class="pill">预测跨度 <b>${wraw.window.start} ~ ${wraw.window.end}</b></span>
-        <span class="pill">出行窗口 5~9 天</span>
+        <span class="pill">出行窗口 ${data.tripDuration.min}~${data.tripDuration.max} 天</span>
         <span class="pill" style="background:#e7f6ee;border-color:#bfe6cf"><b id="wgDry">-</b> 🟢 干爽</span>
         <span class="pill" style="background:var(--blue-soft);border-color:#b9cdf5"><b id="wgMild">-</b> 🔵 偶有阵雨</span>
         <span class="pill" style="background:var(--amber-soft);border-color:#f3ddb8"><b id="wgWet">-</b> 🟡 多雨</span>
@@ -343,6 +421,42 @@ input[type=text]{flex:1}
     数据源：Trip.com 公开航班查询接口，价格为 1 名成人经济舱往返含税总价（人民币），实时波动，以最终下单页为准。<br>
     已排除的国内低成本航空：${data.excludedAirlines.map(a => a.name).join('、')}。折扣幅度＝该航线所选最低价相对窗口期内往返价格中位数的降幅。
   </div>
+  <div id="settingsModal" class="modal-mask" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-label="提醒设置">
+      <div class="modal-hd">
+        <h3>提醒设置</h3>
+        <button id="closeSettings" class="modal-x" type="button" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="fgroup">
+          <label>Server酱 SendKey <a href="https://sct.ftqq.com/" target="_blank" rel="noopener">去申请 ↗</a></label>
+          <input id="scKey" type="text" placeholder="SCTxxxx…（填写一次即可）" autocomplete="off">
+          <p class="hint">⚠️ 本仓库为公开仓库时，此 Key 会随 <code>config.json</code> 公开可见，他人可借此向你推送消息，可随时在 Server酱 后台作废重置。更私密的做法是在仓库 <code>Settings → Secrets</code> 配置 <code>SCT_SENDKEY</code>（优先于此处）。</p>
+        </div>
+        <div class="fgroup">
+          <label class="switch"><input id="alEnable" type="checkbox"> 启用实时特价提醒</label>
+        </div>
+        <div class="fgroup">
+          <div class="row2">
+            <div><label>价格上限 ¥</label><input id="alMax" type="number" min="0" placeholder="1000"></div>
+            <div><label>折扣下限 %</label><input id="alDisc" type="number" min="0" placeholder="25"></div>
+            <div><label>冷却(小时)</label><input id="alCd" type="number" min="0" placeholder="24"></div>
+          </div>
+          <p class="hint">满足「往返 ≤ 价格上限 <b>或</b> 折扣 ≥ 折扣下限」的航线，会立即推送微信；同航线冷却期内不再重复打扰。</p>
+        </div>
+        <div class="fgroup">
+          <label>GitHub 令牌 PAT <a href="https://github.com/settings/tokens" target="_blank" rel="noopener">获取 ↗</a></label>
+          <input id="ghToken" type="password" placeholder="ghp_xxx…（需 repo 权限，仅存本浏览器）" autocomplete="off">
+          <p class="hint">用于把以上设置写回仓库 <code>config.json</code>，使定时任务生效。令牌仅保存在本浏览器 localStorage，不上传任何服务器。</p>
+        </div>
+        <div id="setMsg" class="setmsg"></div>
+      </div>
+      <div class="modal-ft">
+        <button id="testPush" class="btn ghost" type="button">测试推送</button>
+        <button id="saveSettings" class="btn primary" type="button">保存设置</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>${leafletJs}</script>
@@ -357,17 +471,18 @@ const W={
   heavy:{color:'#e02b3c',bg:'#fdecee',label:'强降雨频繁',desc:'强降雨频繁（≥3 个暴雨日），谨慎选择'},
 };
 const wOrder=['dry','mild','wet','heavy'];
-let state={tier:'all',sort:'price',q:'',regions:new Set(),sel:null};
+let state={tier:'all',sort:'price',q:'',regions:new Set(),origins:new Set(),destinations:new Set(),sel:null};
 function tripDays(a,b){return Math.round((Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/86400000);}
-const byCode={}; DATA.routes.forEach(r=>byCode[r.code]=r);
+const byKey={}; DATA.routes.forEach(r=>{ r._id=(r.originCode||'?')+'|'+r.code; byKey[r._id]=r; });
 
 /* ---------- 地图 ---------- */
 const map=L.map('map',{zoomControl:true,worldCopyJump:true,minZoom:2}).setView([25,105],3);
 L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
   {subdomains:['1','2','3','4'],maxZoom:16,attribution:'&copy; 高德地图'}).addTo(map);
-const O=DATA.origin;
-L.circleMarker([O.lat,O.lng],{radius:7,color:'#fff',weight:2,fillColor:'#2563d9',fillOpacity:1}).addTo(map)
-  .bindTooltip('广州 CAN · 出发地',{permanent:false});
+(DATA.origins||[]).forEach(o=>{
+  L.circleMarker([o.lat,o.lng],{radius:7,color:'#fff',weight:2,fillColor:'#2563d9',fillOpacity:1}).addTo(map)
+    .bindTooltip(o.city + ' ' + o.code + ' · 出发地',{permanent:false});
+});
 const layer=L.layerGroup().addTo(map);
 const lineLayer=L.layerGroup().addTo(map);
 const markers={};
@@ -380,15 +495,17 @@ function drawMap(rows){
   rows.forEach(r=>{
     const m=L.circleMarker([r.lat,r.lng],{radius:radiusOf(r),color:'#fff',weight:1.5,
       fillColor:colorOf(r),fillOpacity:.82,className:'mk'}).addTo(layer);
-    m.bindTooltip('<b>'+r.city+'</b> ¥'+r.minPrice+'<br><span style="color:#666">'+r.options[0].depDate.slice(5)+' 去 / '+r.options[0].retDate.slice(5)+' 回</span>',
+    m.bindTooltip('<b>'+r.city+'('+r.code+')</b> ¥'+r.minPrice+'<br><span style="color:#666">'+r.options[0].depDate.slice(5)+' 去 / '+r.options[0].retDate.slice(5)+' 回 · 自 '+(r.originCity||r.originCode)+'</span>',
       {direction:'top',offset:[0,-4]});
-    m.on('click',()=>select(r.code,true));
-    markers[r.code]=m;
+    m.on('click',()=>select(r._id,true));
+    markers[r._id]=m;
   });
 }
 function drawLine(r){
   lineLayer.clearLayers();
   if(!r) return;
+  const O=(DATA.origins||[]).find(o=>o.code===r.originCode) || (DATA.origins&&DATA.origins[0]);
+  if(!O) return;
   let lng=r.lng; if(lng-O.lng>180)lng-=360; if(O.lng-lng>180)lng+=360;
   const pts=[]; const n=48;
   for(let i=0;i<=n;i++){const t=i/n;
@@ -412,10 +529,11 @@ function itemHTML(r){
   const o=r.options[0];
   const alts=r.cheapestPairs.slice(0,6).map(p=>'<tr><td>'+p.dep.slice(5)+' 去 · '+p.ret.slice(5)+' 回</td><td>¥'+p.price+'</td></tr>').join('');
   const others=r.options.slice(1,5).map(x=>'<tr><td>'+x.depDate.slice(5)+'/'+x.retDate.slice(5)+' '+x.out.flights.map(f=>f.no).join('+')+' '+x.airlineNames.join('/')+'</td><td>¥'+x.price+'</td></tr>').join('');
-  return '<div class="item" data-code="'+r.code+'">'+
+  return '<div class="item" data-id="'+r._id+'">'+
     '<div class="it-top"><div>'+
       '<div class="it-city">'+r.city+'<span class="code">'+r.code+'</span></div>'+
       '<div class="it-line">'+
+        (r.originCode?'<span class="badge b">自 '+(r.originCity||r.originCode)+' '+r.originCode+'</span>':'')+
         '<span>'+o.depDate.slice(5)+' 去 · '+o.retDate.slice(5)+' 回 · '+tripDays(o.depDate,o.retDate)+' 天</span>'+
         '<span class="badge '+(o.direct?'g':'')+'">'+(o.direct?'直飞往返':'含中转')+'</span>'+
         '<span class="badge">'+o.airlineNames.join(' / ')+'</span>'+
@@ -438,6 +556,8 @@ function filtered(){
   let rows=DATA.routes.filter(r=>{
     if(state.tier!=='all'&&r.tier!==state.tier) return false;
     if(state.regions.size&&!state.regions.has(r.region)) return false;
+    if(state.origins.size&&!state.origins.has(r.originCode)) return false;
+    if(state.destinations.size&&!state.destinations.has(r.city)) return false;
     if(state.q){const q=state.q.toLowerCase(); if(!(r.city.toLowerCase().includes(q)||r.code.toLowerCase().includes(q))) return false;}
     return true;
   });
@@ -454,29 +574,29 @@ function render(){
   document.getElementById('cnt').textContent='共 '+rows.length+' 条航线';
   drawMap(rows);
   document.querySelectorAll('.item').forEach(el=>{
-    el.onclick=()=>{ const c=el.dataset.code; el.classList.toggle('open'); select(c,false); };
+    el.onclick=()=>{ const id=el.dataset.id; el.classList.toggle('open'); select(id,false); };
   });
-  if(state.sel&&byCode[state.sel]) select(state.sel,false,true);
+  if(state.sel&&byKey[state.sel]) select(state.sel,false,true);
 }
-function select(code,fromMap,quiet){
-  state.sel=code;
-  document.querySelectorAll('.item').forEach(el=>el.classList.toggle('sel',el.dataset.code===code));
-  const r=byCode[code]; drawLine(r);
+function select(id,fromMap,quiet){
+  state.sel=id;
+  document.querySelectorAll('.item').forEach(el=>el.classList.toggle('sel',el.dataset.id===id));
+  const r=byKey[id]; drawLine(r);
   if(fromMap){
-    const el=document.querySelector('.item[data-code="'+code+'"]');
+    const el=document.querySelector('.item[data-id="'+id+'"]');
     if(el){el.classList.add('open');el.scrollIntoView({behavior:'smooth',block:'center'});}
-  }else if(!quiet&&r){ if(markers[code]) markers[code].openTooltip(); }
+  }else if(!quiet&&r){ if(markers[id]) markers[id].openTooltip(); }
 }
 
 /* ---------- 推荐卡 ---------- */
 function pickCard(tier,kind,code){
-  const r=byCode[code]; if(!r) return '';
+  const r=byKey[code]; if(!r) return '';
   const o=r.options[0];
   const extra= kind==='cheapest'?('最低往返 · '+(o.direct?'直飞':'含中转'))
     : kind==='discount'?('<em>低于中位价 '+r.discountPct+'%</em> · 中位 ¥'+r.calMedian)
     : ('<em>'+r.optionCount+' 个航次 / '+r.datePairsInBudget+' 组日期</em>');
-  return '<div class="pick '+tier.toLowerCase()+'" data-code="'+code+'">'+
-    '<div class="pick-hd"><span class="tag '+tier.toLowerCase()+'">'+(tier==='A'?'<¥1000':'¥1000-2000')+'</span>'+PICK_LABEL[kind]+'</div>'+
+  return     '<div class="pick '+tier.toLowerCase()+'" data-id="'+code+'">'+
+    '<div class="pick-hd"><span class="tag '+tier.toLowerCase()+'">'+(tier==='A'?'<¥'+DATA.tiers.a:'¥'+DATA.tiers.a+'-'+DATA.tiers.b)+'</span>'+PICK_LABEL[kind]+'</div>'+
     '<div class="pick-city">'+r.city+'<span>'+r.code+'</span></div>'+
     '<div class="pick-price">¥'+r.minPrice+'<small> /人往返</small></div>'+
     '<div class="pick-sub">'+o.depDate.slice(5)+' 去 · '+o.retDate.slice(5)+' 回 · '+tripDays(o.depDate,o.retDate)+' 天<br>'+
@@ -488,11 +608,11 @@ function renderPicks(){
     ['cheapest','discount','most'].forEach(k=>{ h+=pickCard(t,k,p[k]); }); });
   document.getElementById('picks').innerHTML=h;
   document.querySelectorAll('.pick').forEach(el=>{
-    el.onclick=()=>{ const c=el.dataset.code; const r=byCode[c];
+    el.onclick=()=>{ const id=el.dataset.id; const r=byKey[id];
       state.tier='all'; state.regions.clear(); state.q=''; document.getElementById('q').value='';
       document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tier==='all'));
       document.querySelectorAll('.chip').forEach(t=>t.classList.remove('on'));
-      render(); select(c,true); map.flyTo([r.lat,r.lng],4,{duration:.8}); };
+      render(); select(id,true); map.flyTo([r.lat,r.lng],4,{duration:.8}); };
   });
 }
 
@@ -504,9 +624,24 @@ document.getElementById('sort').onchange=e=>{state.sort=e.target.value;render();
 document.getElementById('q').oninput=e=>{state.q=e.target.value.trim();render();};
 const regions=[...new Set(DATA.routes.map(r=>r.region))];
 document.getElementById('regions').innerHTML=regions.map(r=>'<div class="chip" data-r="'+r+'">'+REGION_NAME[r]+' '+DATA.routes.filter(x=>x.region===r).length+'</div>').join('');
-document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>{
+document.querySelectorAll('#regions .chip').forEach(c=>c.onclick=()=>{
   const r=c.dataset.r; if(state.regions.has(r)){state.regions.delete(r);c.classList.remove('on');}
   else{state.regions.add(r);c.classList.add('on');} render(); });
+// 出发地筛选（多出发地时才有意义）
+const originCodes=[...new Set(DATA.routes.map(r=>r.originCode).filter(Boolean))];
+const originMeta={}; (DATA.origins||[]).forEach(o=>originMeta[o.code]=o);
+document.getElementById('origins').innerHTML= originCodes.map(c=>{
+  const o=originMeta[c]||{}; return '<div class="chip" data-o="'+c+'">'+(o.city||c)+' '+c+'</div>';
+}).join('');
+document.querySelectorAll('#origins .chip').forEach(c=>c.onclick=()=>{
+  const o=c.dataset.o; if(state.origins.has(o)){state.origins.delete(o);c.classList.remove('on');}
+  else{state.origins.add(o);c.classList.add('on');} render(); });
+// 目的地筛选（按城市，不按机场）
+const destCities=[...new Set(DATA.routes.map(r=>r.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh'));
+document.getElementById('destinations').innerHTML=destCities.map(c=>'<div class="chip" data-d="'+c+'">'+c+'</div>').join('');
+document.querySelectorAll('#destinations .chip').forEach(c=>c.onclick=()=>{
+  const d=c.dataset.d; if(state.destinations.has(d)){state.destinations.delete(d);c.classList.remove('on');}
+  else{state.destinations.add(d);c.classList.add('on');} render(); });
 
 document.getElementById('statAll').textContent=DATA.routes.length;
 document.getElementById('statA').textContent=DATA.routes.filter(r=>r.tier==='A').length;
@@ -526,7 +661,9 @@ document.getElementById('wgHeavy').textContent=WEATHER.gradeCounts.heavy||0;
 const wmap=L.map('wmap',{zoomControl:true,worldCopyJump:true,minZoom:1}).setView([22,110],3);
 L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
   {subdomains:['1','2','3','4'],maxZoom:16,attribution:'&copy; 高德地图'}).addTo(wmap);
-L.circleMarker([DATA.origin.lat,DATA.origin.lng],{radius:7,color:'#fff',weight:2,fillColor:'#2563d9',fillOpacity:1}).addTo(wmap).bindTooltip('广州 CAN · 出发地',{permanent:false});
+(DATA.origins||[]).forEach(o=>{
+  L.circleMarker([o.lat,o.lng],{radius:7,color:'#fff',weight:2,fillColor:'#2563d9',fillOpacity:1}).addTo(wmap).bindTooltip(o.city + ' ' + o.code + ' · 出发地',{permanent:false});
+});
 const wLayer=L.layerGroup().addTo(wmap);
 const wMarkers={};
 function wRadius(t){ return 6 + Math.min(11, t.summary.dryDays*1.7); }
@@ -588,6 +725,84 @@ function renderWSrc(){
 }
 renderWMap(); renderWList(); renderWSrc();
 setTimeout(()=>wmap.invalidateSize(),300);
+
+/* ---------- 提醒设置弹窗 ---------- */
+// 从托管地址自动推断仓库（支持他人 fork 后直接用）：*.github.io/<repo>/
+const ON_GH_PAGES = location.hostname.endsWith('.github.io');
+const OWNER = ON_GH_PAGES ? location.hostname.split('.')[0] : 'JohnWish1590';
+const REPO = ON_GH_PAGES ? (location.pathname.split('/')[1] || 'ticketmonitor') : 'ticketmonitor';
+const LS_KEY = 'fw_gh';
+
+const modal = document.getElementById('settingsModal');
+function openModal(){ prefillSettings(); modal.hidden = false; document.body.style.overflow = 'hidden'; }
+function closeModal(){ modal.hidden = true; document.body.style.overflow = ''; }
+document.getElementById('openSettings').onclick = openModal;
+document.getElementById('closeSettings').onclick = closeModal;
+modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.hidden) closeModal(); });
+
+function numOrNull(v){ v = (v || '').trim(); return v === '' ? null : Number(v); }
+function b64enc(s){ return btoa(unescape(encodeURIComponent(s))); }
+function b64dec(s){ return decodeURIComponent(escape(atob(s))); }
+function setMsg(t, ok){ const m = document.getElementById('setMsg'); m.textContent = t; m.className = 'setmsg ' + (ok ? 'ok' : 'err'); }
+
+function prefillSettings(){
+  const a = DATA.alerts || {};
+  document.getElementById('scKey').value = a.sendKey || '';
+  document.getElementById('alEnable').checked = a.enabled !== false;
+  document.getElementById('alMax').value = (typeof a.maxPrice === 'number') ? a.maxPrice : '';
+  document.getElementById('alDisc').value = (typeof a.minDiscount === 'number') ? a.minDiscount : '';
+  document.getElementById('alCd').value = (typeof a.cooldownHours === 'number') ? a.cooldownHours : 24;
+  try { const s = JSON.parse(localStorage.getItem(LS_KEY) || '{}'); if (s.token) document.getElementById('ghToken').value = s.token; } catch (e) {}
+  document.getElementById('setMsg').textContent = '';
+}
+
+document.getElementById('saveSettings').onclick = async () => {
+  const token = document.getElementById('ghToken').value.trim();
+  if (!token) { setMsg('请先填写 GitHub PAT 令牌（需要 repo 权限）。', false); return; }
+  try { localStorage.setItem(LS_KEY, JSON.stringify({ token, owner: OWNER, repo: REPO, branch: 'master' })); } catch (e) {}
+  const alerts = {
+    enabled: document.getElementById('alEnable').checked,
+    maxPrice: numOrNull(document.getElementById('alMax').value),
+    minDiscount: numOrNull(document.getElementById('alDisc').value),
+    cooldownHours: numOrNull(document.getElementById('alCd').value) || 24,
+    sendKey: document.getElementById('scKey').value.trim(),
+  };
+  setMsg('正在保存…', true);
+  try {
+    const url = 'https://api.github.com/repos/' + OWNER + '/' + REPO + '/contents/config.json';
+    const cur = await fetch(url, { headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' } });
+    if (!cur.ok) throw new Error('读取 config.json 失败（' + cur.status + '），检查令牌是否有 repo 权限');
+    const j = await cur.json();
+    const cfg = JSON.parse(b64dec(j.content));
+    cfg.alerts = alerts;
+    const put = await fetch(url, {
+      method: 'PUT',
+      headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'chore: update alerts config from web', content: b64enc(JSON.stringify(cfg, null, 2) + '\\n'), sha: j.sha }),
+    });
+    if (!put.ok) { const pe = await put.json().catch(() => ({})); throw new Error('写入失败（' + put.status + '）' + (pe.message ? '：' + pe.message : '')); }
+    DATA.alerts = alerts;
+    setMsg('✅ 已保存，下一轮定时任务即生效。', true);
+    setTimeout(closeModal, 1200);
+  } catch (e) { setMsg('❌ ' + e.message, false); }
+};
+
+document.getElementById('testPush').onclick = async () => {
+  const key = document.getElementById('scKey').value.trim();
+  if (!key) { setMsg('请先填写 Server酱 SendKey。', false); return; }
+  setMsg('正在发送测试推送…', true);
+  try {
+    const r = await fetch('https://sctapi.ftqq.com/' + key + '.send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ title: '✈️ 机票锁定 · 推送测试', desp: '若你收到这条消息，说明 Server酱 Key 配置成功 ✅\\n价格达标时会自动推送微信。' }).toString(),
+    });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j.code === 0) setMsg('✅ 测试推送成功，请查收微信。', true);
+    else throw new Error(j.message || ('HTTP ' + r.status));
+  } catch (e) { setMsg('❌ ' + e.message, false); }
+};
 </script>
 </body>
 </html>`;
@@ -599,7 +814,7 @@ console.log('生成 index.html (' + Math.round(html.length / 1024) + ' KB)');
 const out = [];
 for (const t of ['A', 'B']) {
   const p = P[t]; if (!p) continue;
-  out.push('### ' + (t === 'A' ? 'A 档 · 往返 < ¥1000' : 'B 档 · 往返 ¥1000~2000'));
+  out.push('### ' + (t === 'A' ? 'A 档 · 往返 < ¥' + data.tiers.a : 'B 档 · 往返 ¥' + data.tiers.a + '~' + data.tiers.b));
   for (const [k, label] of [['cheapest', '最便宜'], ['discount', '折扣最大'], ['most', '航次最多']]) {
     const r = p[k]; const o = r.options[0];
     out.push('- ' + label + '：' + r.city + '(' + r.code + ') ¥' + r.minPrice +

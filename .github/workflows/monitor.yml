@@ -1,0 +1,67 @@
+name: 机票锁定 · 低价监控
+
+on:
+  schedule:
+    # 每 2 小时跑一次实时特价评估（UTC 偶数点 = 北京时间偶数点）
+    - cron: '0 */2 * * *'
+    # 每天北京时间 09:00（UTC 01:00）额外发一次当日汇总
+    - cron: '0 1 * * *'
+  workflow_dispatch: {}   # 允许在 Actions 页面手动触发
+
+# Pages 部署需要 pages 写权限 + OIDC 令牌；流水线本身只需读仓库
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 避免并发部署互相覆盖
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: 下载上轮告警状态（artifact，首次无则跳过）
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: alert-state
+          path: data
+
+      - name: 运行流水线（抓取 → 天气 → 构建 → 实时提醒）
+        env:
+          SCT_SENDKEY: ${{ secrets.SCT_SENDKEY }}
+        run: node scripts/pipeline.js
+
+      - name: 每日汇总推送（仅北京时间 09:00 这一轮）
+        if: github.event.schedule == '0 1 * * *'
+        env:
+          SCT_SENDKEY: ${{ secrets.SCT_SENDKEY }}
+        run: node scripts/notify.js
+
+      - name: 上传告警状态（artifact，供下一轮去重）
+        uses: actions/upload-artifact@v4
+        if: always()
+        continue-on-error: true
+        with:
+          name: alert-state
+          path: data/alert-state.json
+          if-no-files-found: ignore
+          retention-days: 30
+
+      - name: 上传 Pages 产物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist   # 由 pipeline.js 生成的 index.html（含内联数据与地图）
+
+      - name: 部署到 GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

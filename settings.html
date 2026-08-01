@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>机票低价监控系统 · 设置（云端版）</title>
+<style>
+:root{
+  --bg:#f5f6f8; --panel:#fff; --line:#e4e7ec; --line2:#eef0f3;
+  --tx:#1b1f26; --tx2:#5c6470; --tx3:#8b93a1;
+  --red:#e02b3c; --red-soft:#fdecee;
+  --blue:#2563d9; --blue-soft:#eaf0fd;
+  --green:#0f9960;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei","Segoe UI",sans-serif;
+  background:var(--bg);color:var(--tx);font-size:14px;line-height:1.6}
+.wrap{max-width:820px;margin:0 auto;padding:24px 18px 60px}
+header{margin-bottom:18px}
+h1{font-size:22px;font-weight:700}
+.sub{color:var(--tx2);font-size:13px;margin-top:4px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.card h2{font-size:15px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card h2 .n{display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--red);color:#fff;
+  font-size:12px;align-items:center;justify-content:center;font-weight:700}
+label{display:block;font-size:12.5px;color:var(--tx2);margin-bottom:10px}
+select,input[type=text],input[type=number],input[type=date],input[type=password]{
+  display:block;width:100%;margin-top:4px;border:1px solid var(--line);border-radius:8px;
+  padding:8px 10px;font-size:13px;background:#fff;color:var(--tx);outline:none;font-family:inherit}
+select:focus,input:focus{border-color:var(--blue)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.grid3{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+@media(max-width:620px){.grid3{grid-template-columns:repeat(2,1fr)}}
+.hint{font-size:12px;color:var(--tx3);margin-top:4px;line-height:1.55}
+.hint code{background:var(--line2);padding:1px 5px;border-radius:4px;font-size:11.5px}
+.hint a{color:var(--blue);text-decoration:none}
+.hint a:hover{text-decoration:underline}
+.checks{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+@media(max-width:620px){.checks{grid-template-columns:repeat(2,1fr)}}
+.checks label{display:flex;align-items:center;gap:6px;margin:0;font-size:13px;color:var(--tx);
+  border:1px solid var(--line);border-radius:8px;padding:7px 10px;cursor:pointer;background:#fafbfc}
+.checks input{width:auto;margin:0}
+.region-title{font-size:13px;font-weight:700;color:var(--tx);margin:14px 0 8px;display:flex;align-items:center;gap:8px}
+.region-title .cnt{font-size:11px;font-weight:400;color:var(--tx3)}
+.row{display:flex;align-items:center;gap:12px;margin-top:4px;flex-wrap:wrap}
+.origin-row{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px;position:relative;background:#fafbfc}
+.origin-row .o-hd{font-size:12px;font-weight:700;color:var(--tx2);margin-bottom:8px}
+.origin-row .o-del{position:absolute;top:10px;right:12px;background:transparent;color:var(--tx3);font-size:12px;padding:2px 6px}
+.origin-row .o-del:hover{background:transparent;color:var(--red)}
+.origin-empty{font-size:12.5px;color:var(--tx3);margin-top:10px}
+button{cursor:pointer;border:none;border-radius:8px;font-size:13px;font-weight:600;padding:9px 16px;font-family:inherit}
+button.primary{background:var(--red);color:#fff}
+button.primary:hover{background:#c41f2f}
+button.ghost{background:var(--blue-soft);color:var(--blue)}
+button.ghost:hover{background:#dbe6fb}
+button:disabled{opacity:.55;cursor:not-allowed}
+.status{font-size:12.5px}
+.status.ok{color:var(--green)}
+.status.err{color:var(--red)}
+.actions{display:flex;align-items:center;gap:14px;margin-top:4px}
+.foot{font-size:12px;color:var(--tx3);margin-top:10px;line-height:1.6}
+.foot code{background:var(--line2);padding:1px 5px;border-radius:4px;font-size:11.5px}
+.banner{background:var(--blue-soft);border:1px solid #cfe0fb;color:#1d4fb5;border-radius:10px;padding:10px 14px;font-size:12.5px;margin-bottom:14px}
+.banner.err{background:#fdecee;border-color:#f6c9cd;color:#b3262e}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>✈️ 机票低价监控系统 · 设置（云端版）</h1>
+    <p class="sub">本页直接读写 GitHub 仓库里的 <code>config.json</code>。改完保存，云端每 2 小时自动用新设置跑。</p>
+  </header>
+
+  <div id="connBanner" class="banner">首次使用请先在下面「连接 GitHub」填写你的令牌（PAT）。</div>
+
+  <!-- 连接 GitHub -->
+  <section class="card">
+    <h2><span class="n">·</span>连接 GitHub</h2>
+    <label>个人访问令牌 PAT（需要 <code>repo</code> 权限；仅存本浏览器 localStorage，不上传任何服务器）
+      <input id="token" type="password" placeholder="ghp_xxx...">
+    </label>
+    <div class="grid3">
+      <label>仓库所有者<input id="owner" type="text" value="JohnWish1590"></label>
+      <label>仓库名<input id="repo" type="text" value="ticketmonitor"></label>
+      <label>分支<input id="branch" type="text" value="master"></label>
+      <label>记住令牌
+        <select id="remember">
+          <option value="yes">记住（本机浏览器）</option>
+          <option value="no">不记住（每次手填）</option>
+        </select>
+      </label>
+      <label>操作
+        <button id="connectBtn" class="ghost" type="button" style="margin-top:4px">连接并加载</button>
+      </label>
+    </div>
+    <p class="hint">没有 PAT？去 GitHub → 右上角头像 → Settings → Developer settings → Personal access tokens → Tokens (classic) → Generate new token，勾 <code>repo</code> 全选，生成后粘贴到这里。此令牌能读写你的 ticketmonitor 仓库，请勿在公共电脑勾选「记住」。</p>
+  </section>
+
+  <div id="app" class="hidden">
+  <section class="card">
+    <h2><span class="n">1</span>出发地（可多个 · 按机场代码区分）</h2>
+    <p class="hint">同一城市的不同机场要<b>分别添加</b>（如上海拆 <b>SHA 虹桥</b> 与 <b>PVG 浦东</b>），每个出发地用机场三字码唯一标识——这是唯一识别码。监控会为每个出发地各跑一遍，互不串味。下方「从预设机场添加」可快速加入常见机场。</p>
+    <div id="originList"></div>
+    <div class="row" style="margin-top:10px">
+      <select id="originPreset" style="max-width:300px"></select>
+      <button id="addOrigin" class="ghost" type="button">+ 手动添加出发地</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">2</span>出行窗口</h2>
+    <div class="grid2">
+      <label>最早出发日期<input id="winStart" type="date"></label>
+      <label>最晚返回日期<input id="winEnd" type="date"></label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">3</span>行程天数</h2>
+    <div class="grid2">
+      <label>最短天数（去→回）<input id="tripMin" type="number" min="1" value="5"></label>
+      <label>最长天数<input id="tripMax" type="number" min="1" value="9"></label>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">4</span>价格分档阈值（元 / 往返总价，仅用于网页展示推荐）</h2>
+    <div class="grid2">
+      <label>A 档上限（低于此值算超便宜）<input id="tierA" type="number" min="1" value="1000"></label>
+      <label>B 档上限<input id="tierB" type="number" min="1" value="2000"></label>
+    </div>
+    <p class="hint">例：A 档 ¥1000、B 档 ¥2000 → 只看往返 ¥2000 以内的航线，并分两档推荐。超过 B 档上限的航线直接不显示。真正<strong>触发推送</strong>的是第 7 节的阈值。</p>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">5</span>排除国内廉价航空</h2>
+    <div id="lccBox" class="checks"></div>
+    <p class="hint">勾选的航司会从结果中剔除（保留亚航、越捷等外国低成本航司）。</p>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">6</span>监控目的地（航线）</h2>
+    <div class="row" style="margin-bottom:6px">
+      <button id="selAll" class="ghost" type="button">全选</button>
+      <button id="selNone" class="ghost" type="button">全不选</button>
+      <button id="selAsia" class="ghost" type="button">只选亚洲</button>
+      <span id="destCount" class="status"></span>
+    </div>
+    <div id="destBox"></div>
+    <p class="hint">勾选要监控的目的地（默认全选 = 仓库内置 130 城全量）。取消部分则只盯你选的。保存即生效，无需改代码。</p>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">7</span>实时特价提醒（触发式推送）</h2>
+    <div class="grid2">
+      <label>往返总价 ≤ 此值就推（元，留空=不按价格触发）
+        <input id="alertMax" type="number" min="1" placeholder="1000">
+      </label>
+      <label>低于窗口中位价 ≥ 此% 就推（留空=不按折扣触发）
+        <input id="alertDisc" type="number" min="0" placeholder="25">
+      </label>
+    </div>
+    <div class="grid2">
+      <label>同一航线再次提醒间隔（小时）
+        <input id="alertCooldown" type="number" min="1" value="24">
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:18px">
+        <input id="alertEnabled" type="checkbox" checked> 启用实时提醒
+      </label>
+    </div>
+    <p class="hint">满足「价格≤上限 <b>或</b> 折扣≥比例」的航线会<b>立刻</b>推微信；已达标但近期提醒过的不会重复刷屏，只有出现<b>更低价</b>或冷却期满才再推。下一轮运行（每 2 小时）即按新阈值评估。</p>
+  </section>
+
+  <section class="card">
+    <h2><span class="n">8</span>微信提醒（Server酱）</h2>
+    <p class="hint">
+      推送密钥 <code>SCT_SENDKEY</code> 存在仓库 <strong>Secrets</strong> 里（不在 config.json，避免在网页暴露）。<br>
+      去仓库 → Settings → Secrets and variables → Actions → New repository secret：名称 <code>SCT_SENDKEY</code>，值填你的 SendKey（sct.ftqq.com 微信扫码关注「方糖」获取）。<br>
+      保存设置后下一轮运行即生效；想验证密钥是否正确，可在下面临时填一次 SendKey 发测试（不保存）。
+    </p>
+    <div class="grid2">
+      <label>临时测试 SendKey（仅本次发送，不入库）
+        <input id="testKey" type="text" placeholder="SCTxxxx...">
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:18px">
+        <button id="testBtn" class="ghost" type="button">发送测试推送</button>
+        <span id="testStatus" class="status"></span>
+      </label>
+    </div>
+  </section>
+
+  <div class="actions">
+    <button id="saveBtn" class="primary" type="button">保存设置</button>
+    <span id="saveStatus" class="status"></span>
+  </div>
+  <p class="foot">保存 = 用 GitHub API 提交 <code>config.json</code> 到 <code>node</code> 分支；GitHub Actions 下一轮（每 2 小时）自动用新设置跑。</p>
+  </div>
+</div>
+
+<script>
+// ===== 内置目的地清单（与 scripts/destinations.js 保持一致）=====
+const DEST_LIST = [
+  {code:'PEK',city:'北京',region:'domestic',lat:39.9042,lng:116.4074,tz:8,alt:'BJS'},
+  {code:'SHA',city:'上海',region:'domestic',lat:31.2304,lng:121.4737,tz:8},
+  {code:'CTU',city:'成都',region:'domestic',lat:30.5728,lng:104.0668,tz:8},
+  {code:'CKG',city:'重庆',region:'domestic',lat:29.5630,lng:106.5516,tz:8},
+  {code:'XIY',city:'西安',region:'domestic',lat:34.3416,lng:108.9398,tz:8},
+  {code:'KMG',city:'昆明',region:'domestic',lat:24.8801,lng:102.8329,tz:8},
+  {code:'KWE',city:'贵阳',region:'domestic',lat:26.6470,lng:106.6302,tz:8},
+  {code:'CSX',city:'长沙',region:'domestic',lat:28.2282,lng:112.9388,tz:8},
+  {code:'WUH',city:'武汉',region:'domestic',lat:30.5928,lng:114.3055,tz:8},
+  {code:'CGO',city:'郑州',region:'domestic',lat:34.7466,lng:113.6254,tz:8},
+  {code:'TAO',city:'青岛',region:'domestic',lat:36.0671,lng:120.3826,tz:8},
+  {code:'DLC',city:'大连',region:'domestic',lat:38.9140,lng:121.6147,tz:8},
+  {code:'SHE',city:'沈阳',region:'domestic',lat:41.8057,lng:123.4315,tz:8},
+  {code:'HRB',city:'哈尔滨',region:'domestic',lat:45.8038,lng:126.5349,tz:8},
+  {code:'CGQ',city:'长春',region:'domestic',lat:43.8171,lng:125.3235,tz:8},
+  {code:'TSN',city:'天津',region:'domestic',lat:39.3434,lng:117.3616,tz:8},
+  {code:'TYN',city:'太原',region:'domestic',lat:37.8706,lng:112.5489,tz:8},
+  {code:'HET',city:'呼和浩特',region:'domestic',lat:40.8414,lng:111.7519,tz:8},
+  {code:'INC',city:'银川',region:'domestic',lat:38.4872,lng:106.2309,tz:8},
+  {code:'LHW',city:'兰州',region:'domestic',lat:36.0611,lng:103.8343,tz:8},
+  {code:'XNN',city:'西宁',region:'domestic',lat:36.6171,lng:101.7782,tz:8},
+  {code:'URC',city:'乌鲁木齐',region:'domestic',lat:43.8256,lng:87.6168,tz:8},
+  {code:'LXA',city:'拉萨',region:'domestic',lat:29.6520,lng:91.1721,tz:8},
+  {code:'SYX',city:'三亚',region:'domestic',lat:18.2528,lng:109.5119,tz:8},
+  {code:'HAK',city:'海口',region:'domestic',lat:20.0444,lng:110.1999,tz:8},
+  {code:'XMN',city:'厦门',region:'domestic',lat:24.4798,lng:118.0894,tz:8},
+  {code:'FOC',city:'福州',region:'domestic',lat:26.0745,lng:119.2965,tz:8},
+  {code:'HGH',city:'杭州',region:'domestic',lat:30.2741,lng:120.1551,tz:8},
+  {code:'NKG',city:'南京',region:'domestic',lat:32.0603,lng:118.7969,tz:8},
+  {code:'HFE',city:'合肥',region:'domestic',lat:31.8206,lng:117.2272,tz:8},
+  {code:'KHN',city:'南昌',region:'domestic',lat:28.6820,lng:115.8579,tz:8},
+  {code:'TNA',city:'济南',region:'domestic',lat:36.6512,lng:117.1201,tz:8},
+  {code:'NNG',city:'南宁',region:'domestic',lat:22.8170,lng:108.3665,tz:8},
+  {code:'KWL',city:'桂林',region:'domestic',lat:25.2736,lng:110.2900,tz:8},
+  {code:'LJG',city:'丽江',region:'domestic',lat:26.8721,lng:100.2300,tz:8},
+  {code:'DYG',city:'张家界',region:'domestic',lat:29.1174,lng:110.4791,tz:8},
+  {code:'JJN',city:'泉州',region:'domestic',lat:24.8741,lng:118.6757,tz:8},
+  {code:'WNZ',city:'温州',region:'domestic',lat:27.9938,lng:120.6994,tz:8},
+  {code:'YNT',city:'烟台',region:'domestic',lat:37.4638,lng:121.4479,tz:8},
+  {code:'HKG',city:'中国香港',region:'domestic',lat:22.3193,lng:114.1694,tz:8},
+  {code:'MFM',city:'中国澳门',region:'domestic',lat:22.1987,lng:113.5439,tz:8},
+  {code:'TPE',city:'中国台北',region:'domestic',lat:25.0330,lng:121.5654,tz:8},
+  {code:'BKK',city:'曼谷',region:'asia',lat:13.7563,lng:100.5018,tz:7},
+  {code:'HKT',city:'普吉岛',region:'asia',lat:7.8804,lng:98.3923,tz:7},
+  {code:'CNX',city:'清迈',region:'asia',lat:18.7883,lng:98.9853,tz:7},
+  {code:'SIN',city:'新加坡',region:'asia',lat:1.3521,lng:103.8198,tz:8},
+  {code:'KUL',city:'吉隆坡',region:'asia',lat:3.1390,lng:101.6869,tz:8},
+  {code:'BKI',city:'亚庇',region:'asia',lat:5.9804,lng:116.0735,tz:8},
+  {code:'PEN',city:'槟城',region:'asia',lat:5.4141,lng:100.3288,tz:8},
+  {code:'CGK',city:'雅加达',region:'asia',lat:-6.2088,lng:106.8456,tz:7,alt:'JKT'},
+  {code:'DPS',city:'巴厘岛',region:'asia',lat:-8.4095,lng:115.1889,tz:8},
+  {code:'MNL',city:'马尼拉',region:'asia',lat:14.5995,lng:120.9842,tz:8},
+  {code:'CEB',city:'宿务',region:'asia',lat:10.3157,lng:123.8854,tz:8},
+  {code:'HAN',city:'河内',region:'asia',lat:21.0285,lng:105.8542,tz:7},
+  {code:'SGN',city:'胡志明市',region:'asia',lat:10.8231,lng:106.6297,tz:7},
+  {code:'DAD',city:'岘港',region:'asia',lat:16.0544,lng:108.2022,tz:7},
+  {code:'CXR',city:'芽庄',region:'asia',lat:12.2388,lng:109.1967,tz:7},
+  {code:'PQC',city:'富国岛',region:'asia',lat:10.2270,lng:103.9670,tz:7},
+  {code:'PNH',city:'金边',region:'asia',lat:11.5564,lng:104.9282,tz:7},
+  {code:'REP',city:'暹粒',region:'asia',lat:13.3671,lng:103.8448,tz:7},
+  {code:'VTE',city:'万象',region:'asia',lat:17.9757,lng:102.6331,tz:7},
+  {code:'RGN',city:'仰光',region:'asia',lat:16.8661,lng:96.1951,tz:6.5},
+  {code:'ICN',city:'首尔',region:'asia',lat:37.5665,lng:126.9780,tz:9,alt:'SEL'},
+  {code:'PUS',city:'釜山',region:'asia',lat:35.1796,lng:129.0756,tz:9},
+  {code:'CJU',city:'济州岛',region:'asia',lat:33.4996,lng:126.5312,tz:9},
+  {code:'TYO',city:'东京',region:'asia',lat:35.6762,lng:139.6503,tz:9},
+  {code:'OSA',city:'大阪',region:'asia',lat:34.6937,lng:135.5023,tz:9},
+  {code:'NGO',city:'名古屋',region:'asia',lat:35.1815,lng:136.9066,tz:9},
+  {code:'FUK',city:'福冈',region:'asia',lat:33.5904,lng:130.4017,tz:9},
+  {code:'CTS',city:'札幌',region:'asia',lat:43.0618,lng:141.3545,tz:9,alt:'SPK'},
+  {code:'OKA',city:'冲绳',region:'asia',lat:26.2124,lng:127.6809,tz:9},
+  {code:'KTM',city:'加德满都',region:'asia',lat:27.7172,lng:85.3240,tz:5.75},
+  {code:'DEL',city:'新德里',region:'asia',lat:28.6139,lng:77.2090,tz:5.5},
+  {code:'CMB',city:'科伦坡',region:'asia',lat:6.9271,lng:79.8612,tz:5.5},
+  {code:'MLE',city:'马尔代夫',region:'asia',lat:4.1755,lng:73.5093,tz:5},
+  {code:'DXB',city:'迪拜',region:'asia',lat:25.2048,lng:55.2708,tz:4},
+  {code:'DOH',city:'多哈',region:'asia',lat:25.2854,lng:51.5310,tz:3},
+  {code:'AUH',city:'阿布扎比',region:'asia',lat:24.4539,lng:54.3773,tz:4},
+  {code:'IST',city:'伊斯坦布尔',region:'asia',lat:41.0082,lng:28.9784,tz:3},
+  {code:'ALA',city:'阿拉木图',region:'asia',lat:43.2220,lng:76.8512,tz:5},
+  {code:'TAS',city:'塔什干',region:'asia',lat:41.2995,lng:69.2401,tz:5},
+  {code:'ULN',city:'乌兰巴托',region:'asia',lat:47.8864,lng:106.9057,tz:8},
+  {code:'SYD',city:'悉尼',region:'oceania',lat:-33.8688,lng:151.2093,tz:10},
+  {code:'MEL',city:'墨尔本',region:'oceania',lat:-37.8136,lng:144.9631,tz:10},
+  {code:'BNE',city:'布里斯班',region:'oceania',lat:-27.4698,lng:153.0251,tz:10},
+  {code:'PER',city:'珀斯',region:'oceania',lat:-31.9505,lng:115.8605,tz:8},
+  {code:'AKL',city:'奥克兰',region:'oceania',lat:-36.8485,lng:174.7633,tz:12},
+  {code:'MOW',city:'莫斯科',region:'europe',lat:55.7558,lng:37.6173,tz:3},
+  {code:'LON',city:'伦敦',region:'europe',lat:51.5074,lng:-0.1278,tz:1},
+  {code:'PAR',city:'巴黎',region:'europe',lat:48.8566,lng:2.3522,tz:2},
+  {code:'FRA',city:'法兰克福',region:'europe',lat:50.1109,lng:8.6821,tz:2},
+  {code:'AMS',city:'阿姆斯特丹',region:'europe',lat:52.3676,lng:4.9041,tz:2},
+  {code:'ROM',city:'罗马',region:'europe',lat:41.9028,lng:12.4964,tz:2},
+  {code:'MIL',city:'米兰',region:'europe',lat:45.4642,lng:9.1900,tz:2},
+  {code:'MAD',city:'马德里',region:'europe',lat:40.4168,lng:-3.7038,tz:2},
+  {code:'BCN',city:'巴塞罗那',region:'europe',lat:41.3851,lng:2.1734,tz:2},
+  {code:'ZRH',city:'苏黎世',region:'europe',lat:47.3769,lng:8.5417,tz:2},
+  {code:'VIE',city:'维也纳',region:'europe',lat:48.2082,lng:16.3738,tz:2},
+  {code:'BUD',city:'布达佩斯',region:'europe',lat:47.4979,lng:19.0402,tz:2},
+  {code:'HEL',city:'赫尔辛基',region:'europe',lat:60.1699,lng:24.9384,tz:3},
+  {code:'CPH',city:'哥本哈根',region:'europe',lat:55.6761,lng:12.5683,tz:2},
+  {code:'ATH',city:'雅典',region:'europe',lat:37.9838,lng:23.7275,tz:3},
+  {code:'LIS',city:'里斯本',region:'europe',lat:38.7223,lng:-9.1393,tz:1},
+  {code:'NYC',city:'纽约',region:'america',lat:40.7128,lng:-74.0060,tz:-4},
+  {code:'LAX',city:'洛杉矶',region:'america',lat:34.0522,lng:-118.2437,tz:-7},
+  {code:'SFO',city:'旧金山',region:'america',lat:37.7749,lng:-122.4194,tz:-7},
+  {code:'SEA',city:'西雅图',region:'america',lat:47.6062,lng:-122.3321,tz:-7},
+  {code:'YVR',city:'温哥华',region:'america',lat:49.2827,lng:-123.1207,tz:-7},
+  {code:'YTO',city:'多伦多',region:'america',lat:43.6532,lng:-79.3832,tz:-4},
+  {code:'MEX',city:'墨西哥城',region:'america',lat:19.4326,lng:-99.1332,tz:-6},
+  {code:'SAO',city:'圣保罗',region:'america',lat:-23.5505,lng:-46.6333,tz:-3},
+  {code:'CAI',city:'开罗',region:'africa',lat:30.0444,lng:31.2357,tz:3},
+  {code:'NBO',city:'内罗毕',region:'africa',lat:-1.2921,lng:36.8219,tz:3},
+  {code:'JNB',city:'约翰内斯堡',region:'africa',lat:-26.2041,lng:28.0473,tz:2},
+  {code:'ADD',city:'亚的斯亚贝巴',region:'africa',lat:9.0300,lng:38.7400,tz:3},
+];
+
+const REGION_NAMES = { domestic:'国内', asia:'亚洲', oceania:'大洋洲', europe:'欧洲', america:'美洲', africa:'非洲' };
+// 预设机场（按机场代码区分，双机场城市拆开）：SHA/PVG、PEK/PKX、CTU/TFU 等
+const PRESETS = [
+  {code:'SHA',city:'上海·虹桥',lat:31.1979,lng:121.3364,tz:8},
+  {code:'PVG',city:'上海·浦东',lat:31.1443,lng:121.8083,tz:8},
+  {code:'PEK',city:'北京·首都',lat:40.0801,lng:116.5846,tz:8},
+  {code:'PKX',city:'北京·大兴',lat:39.5098,lng:116.4108,tz:8},
+  {code:'CTU',city:'成都·双流',lat:30.5785,lng:103.9471,tz:8},
+  {code:'TFU',city:'成都·天府',lat:30.3120,lng:104.4419,tz:8},
+  {code:'CAN',city:'广州·白云',lat:23.3924,lng:113.2988,tz:8},
+  {code:'SZX',city:'深圳·宝安',lat:22.6393,lng:113.8107,tz:8},
+  {code:'HGH',city:'杭州·萧山',lat:30.2295,lng:120.4340,tz:8},
+  {code:'XIY',city:'西安·咸阳',lat:34.4471,lng:108.7516,tz:8},
+  {code:'CKG',city:'重庆·江北',lat:29.7192,lng:106.6416,tz:8},
+  {code:'KMG',city:'昆明·长水',lat:25.1019,lng:102.9292,tz:8},
+  {code:'XMN',city:'厦门·高崎',lat:24.5443,lng:118.1278,tz:8},
+  {code:'WUH',city:'武汉·天河',lat:30.7838,lng:114.2082,tz:8},
+  {code:'CSX',city:'长沙·黄花',lat:28.1893,lng:113.2194,tz:8},
+  {code:'NKG',city:'南京·禄口',lat:31.7420,lng:118.8620,tz:8},
+  {code:'TAO',city:'青岛·胶东',lat:36.2664,lng:120.3744,tz:8},
+  {code:'TSN',city:'天津·滨海',lat:39.1274,lng:117.3461,tz:8},
+  {code:'CGO',city:'郑州·新郑',lat:34.5197,lng:113.8403,tz:8},
+  {code:'DLC',city:'大连·周水子',lat:38.9656,lng:121.5391,tz:8},
+  {code:'SHE',city:'沈阳·桃仙',lat:41.6398,lng:123.4833,tz:8},
+  {code:'HRB',city:'哈尔滨·太平',lat:45.6234,lng:126.2502,tz:8},
+  {code:'URC',city:'乌鲁木齐·地窝堡',lat:43.9071,lng:87.4740,tz:8},
+  {code:'LXA',city:'拉萨·贡嘎',lat:29.2996,lng:90.9478,tz:8},
+  {code:'KWE',city:'贵阳·龙洞堡',lat:26.5385,lng:106.8008,tz:8},
+  {code:'FOC',city:'福州·长乐',lat:25.9357,lng:119.6633,tz:8},
+  {code:'KWL',city:'桂林·两江',lat:25.2154,lng:110.0370,tz:8},
+  {code:'LJG',city:'丽江·三义',lat:26.6777,lng:100.2460,tz:8},
+  {code:'NNG',city:'南宁·吴圩',lat:22.6083,lng:108.1722,tz:8},
+  {code:'TYN',city:'太原·武宿',lat:37.7466,lng:112.6283,tz:8},
+  {code:'TNA',city:'济南·遥墙',lat:36.8573,lng:117.2159,tz:8},
+  {code:'WNZ',city:'温州·龙湾',lat:27.9122,lng:120.8519,tz:8},
+  {code:'HAK',city:'海口·美兰',lat:19.9349,lng:110.4584,tz:8},
+  {code:'SYX',city:'三亚·凤凰',lat:18.3029,lng:109.4129,tz:8},
+  {code:'HKG',city:'香港·赤鱲角',lat:22.3080,lng:113.9185,tz:8},
+  {code:'TPE',city:'台北·桃园',lat:25.0797,lng:121.2342,tz:8},
+];
+const LCC_ALL = [
+  ['9C','春秋航空'],['AQ','九元航空'],['PN','西部航空'],['KN','中国联合航空'],
+  ['8L','祥鹏航空'],['DR','瑞丽航空'],['GJ','长龙航空'],['UQ','乌鲁木齐航空'],['GY','多彩贵州航空'],
+];
+
+const $ = (id) => document.getElementById(id);
+let CONFIG = null;
+let FILE_SHA = null;
+let GH = { token:'', owner:'JohnWish1590', repo:'ticketmonitor', branch:'master' };
+
+// ---------- GitHub API ----------
+function ghHeaders(extra){
+  return Object.assign({ Authorization: 'Bearer ' + GH.token, Accept: 'application/vnd.github+json', 'User-Agent': 'fw-settings' }, extra || {});
+}
+function apiBase(){ return `https://api.github.com/repos/${GH.owner}/${GH.repo}/contents`; }
+async function getConfig(){
+  const r = await fetch(`${apiBase()}/config.json?ref=${GH.branch}`, { headers: ghHeaders() });
+  if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.message || ('HTTP ' + r.status)); }
+  const d = await r.json();
+  FILE_SHA = d.sha;
+  return JSON.parse(decodeURIComponent(escape(atob(d.content.replace(/\n/g,'')))));
+}
+async function putConfig(cfg){
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(cfg, null, 2) + '\n')));
+  const r = await fetch(`${apiBase()}/config.json`, {
+    method: 'PUT',
+    headers: ghHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({ message: 'config: update via settings page', content, sha: FILE_SHA, branch: GH.branch }),
+  });
+  if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.message || ('HTTP ' + r.status)); }
+  const d = await r.json();
+  FILE_SHA = d.content.sha;
+}
+
+// ---------- UI 初始化 ----------
+// 多出发地：渲染 / 读取 / 增删
+function readOne(row){
+  return {
+    code: (row.querySelector('.o-code').value || '').trim().toUpperCase(),
+    city: (row.querySelector('.o-city').value || '').trim(),
+    tz: parseInt(row.querySelector('.o-tz').value, 10) || 8,
+    lat: parseFloat(row.querySelector('.o-lat').value),
+    lng: parseFloat(row.querySelector('.o-lng').value),
+  };
+}
+function renderOrigins(list){
+  const box = $('originList');
+  if (!list || !list.length) { box.innerHTML = '<p class="origin-empty">尚未添加出发地。至少添加一个出发地（点「+ 手动添加」或「从预设机场添加」）。</p>'; return; }
+  box.innerHTML = list.map((o, i) => `
+    <div class="origin-row">
+      <div class="o-hd">出发地 #${i + 1}${o.code ? ' · ' + o.code : ''}</div>
+      <div class="grid3">
+        <label>三字码<input class="o-code" maxlength="3" placeholder="SHA" value="${o.code || ''}"></label>
+        <label>城市/机场名<input class="o-city" placeholder="上海·虹桥" value="${o.city || ''}"></label>
+        <label>时区<input class="o-tz" type="number" step="1" value="${o.tz != null ? o.tz : 8}"></label>
+        <label>纬度<input class="o-lat" type="number" step="0.0001" value="${o.lat != null ? o.lat : ''}"></label>
+        <label>经度<input class="o-lng" type="number" step="0.0001" value="${o.lng != null ? o.lng : ''}"></label>
+      </div>
+      <button class="o-del" type="button">✕ 删除</button>
+    </div>`).join('');
+  box.querySelectorAll('.o-del').forEach(b => b.addEventListener('click', () => {
+    const rows = [...box.querySelectorAll('.origin-row')];
+    const idx = rows.indexOf(b.closest('.origin-row'));
+    if (idx >= 0) rows.splice(idx, 1);
+    renderOrigins(rows.map(readOne));
+  }));
+}
+function readOrigins(){
+  return [...$('originList').querySelectorAll('.origin-row')].map(readOne).filter(o => o.code);
+}
+(function initPreset(){
+  const sel = $('originPreset');
+  sel.innerHTML = '<option value="">— 从预设机场添加 —</option>' +
+    PRESETS.map(p => `<option value="${p.code}">${p.city} (${p.code})</option>`).join('');
+  sel.addEventListener('change', () => {
+    const p = PRESETS.find(x => x.code === sel.value);
+    if (p) {
+      const cur = readOrigins();
+      if (!cur.some(o => o.code === p.code)) cur.push(p);
+      renderOrigins(cur);
+    }
+    sel.value = '';
+  });
+})();
+$('addOrigin').addEventListener('click', () => {
+  const cur = readOrigins();
+  cur.push({ code: '', city: '', tz: 8, lat: '', lng: '' });
+  renderOrigins(cur);
+});
+(function initLcc(){
+  $('lccBox').innerHTML = LCC_ALL.map(([c,n]) =>
+    `<label><input type="checkbox" value="${c}"> ${n} (${c})</label>`).join('');
+})();
+(function initDest(){
+  const box = $('destBox');
+  const byRegion = {};
+  for (const d of DEST_LIST) (byRegion[d.region] = byRegion[d.region] || []).push(d);
+  const order = ['domestic','asia','oceania','europe','america','africa'];
+  box.innerHTML = order.filter(r => byRegion[r]).map(r => {
+    const items = byRegion[r].map(d =>
+      `<label><input type="checkbox" class="dest" value="${d.code}"> ${d.city} (${d.code})</label>`).join('');
+    return `<div class="region-title">${REGION_NAMES[r] || r} <span class="cnt" data-region="${r}"></span></div><div class="checks">${items}</div>`;
+  }).join('');
+})();
+function updateDestCount(){
+  const total = DEST_LIST.length;
+  const sel = document.querySelectorAll('.dest:checked').length;
+  $('destCount').textContent = `已选 ${sel} / ${total}`;
+}
+document.querySelectorAll('.dest').forEach(cb => cb.addEventListener('change', updateDestCount));
+$('selAll').addEventListener('click', () => { document.querySelectorAll('.dest').forEach(cb => cb.checked = true); updateDestCount(); });
+$('selNone').addEventListener('click', () => { document.querySelectorAll('.dest').forEach(cb => cb.checked = false); updateDestCount(); });
+$('selAsia').addEventListener('click', () => {
+  document.querySelectorAll('.dest').forEach(cb => { cb.checked = (DEST_LIST.find(d => d.code === cb.value).region === 'asia'); });
+  updateDestCount();
+});
+
+function fillForm(cfg){
+  if (!cfg) return;
+  const origins = (cfg.origins && cfg.origins.length) ? cfg.origins
+    : (cfg.origin && cfg.origin.code) ? [cfg.origin] : [];
+  renderOrigins(origins);
+  const w = cfg.window || {};
+  $('winStart').value = w.start || '';
+  $('winEnd').value = w.end || '';
+  $('tripMin').value = cfg.tripMinDays ?? 5;
+  $('tripMax').value = cfg.tripMaxDays ?? 9;
+  $('tierA').value = cfg.tierA ?? 1000;
+  $('tierB').value = cfg.tierB ?? 2000;
+  const al = cfg.alerts || {};
+  $('alertEnabled').checked = al.enabled !== false;
+  $('alertMax').value = (al.maxPrice != null) ? al.maxPrice : '';
+  $('alertDisc').value = (al.minDiscount != null) ? al.minDiscount : '';
+  $('alertCooldown').value = (al.cooldownHours != null) ? al.cooldownHours : 24;
+  const ex = new Set(cfg.excludeCarriers || []);
+  document.querySelectorAll('#lccBox input').forEach(cb => { cb.checked = ex.has(cb.value); });
+  // 目的地：若 config 里有 destinations 则按它勾选，否则全选
+  const selCodes = (cfg.destinations && cfg.destinations.length) ? new Set(cfg.destinations.map(d => d.code)) : null;
+  document.querySelectorAll('.dest').forEach(cb => { cb.checked = selCodes ? selCodes.has(cb.value) : true; });
+  updateDestCount();
+}
+
+function collect(){
+  const checked = [...document.querySelectorAll('#lccBox input:checked')].map(cb => cb.value);
+  const selCodes = [...document.querySelectorAll('.dest:checked')].map(cb => cb.value);
+  // 全选（=默认全量）时不写 destinations，让 scrape 回退到内置全量清单
+  const full = (selCodes.length === DEST_LIST.length);
+  const destinations = full ? undefined : DEST_LIST.filter(d => selCodes.includes(d.code));
+  const origins = readOrigins();
+  const cfg = {
+    origins,
+    window: { start: $('winStart').value, end: $('winEnd').value },
+    tripMinDays: parseInt($('tripMin').value, 10) || 5,
+    tripMaxDays: parseInt($('tripMax').value, 10) || 9,
+    tierA: parseInt($('tierA').value, 10) || 1000,
+    tierB: parseInt($('tierB').value, 10) || 2000,
+    excludeCarriers: checked,
+    alerts: {
+      enabled: $('alertEnabled').checked,
+      maxPrice: $('alertMax').value === '' ? null : (parseInt($('alertMax').value, 10) || null),
+      minDiscount: $('alertDisc').value === '' ? null : (parseInt($('alertDisc').value, 10) || null),
+      cooldownHours: parseInt($('alertCooldown').value, 10) || 24,
+    },
+  };
+  if (destinations) cfg.destinations = destinations;
+  // 保留 config 里其他不由本表单管理的顶层字段，避免保存时丢失
+  const known = new Set(['origins','window','tripMinDays','tripMaxDays','tierA','tierB','excludeCarriers','alerts','destinations']);
+  if (CONFIG) for (const k of Object.keys(CONFIG)) if (!known.has(k)) cfg[k] = CONFIG[k];
+  return cfg;
+}
+
+function setStatus(el, msg, ok){
+  el.textContent = msg;
+  el.className = 'status' + (ok === true ? ' ok' : ok === false ? ' err' : '');
+}
+function showBanner(msg, isErr){
+  const b = $('connBanner');
+  b.textContent = msg;
+  b.className = 'banner' + (isErr ? ' err' : '');
+}
+
+// ---------- 连接 / 加载 / 保存 ----------
+async function connect(){
+  GH = { token: $('token').value.trim(), owner: $('owner').value.trim(), repo: $('repo').value.trim(), branch: $('branch').value.trim() || 'master' };
+  if (!GH.token) { showBanner('请先填写 PAT 令牌。', true); return; }
+  if ($('remember').value === 'yes') {
+    try { localStorage.setItem('fw_gh', JSON.stringify({ token: GH.token, owner: GH.owner, repo: GH.repo, branch: GH.branch })); } catch(e){}
+  } else {
+    try { localStorage.removeItem('fw_gh'); } catch(e){}
+  }
+  setStatus($('saveStatus'), '连接中…', null);
+  try {
+    const cfg = await getConfig();
+    CONFIG = cfg;
+    fillForm(CONFIG);
+    $('app').classList.remove('hidden');
+    showBanner(`已连接 ${GH.owner}/${GH.repo}@${GH.branch}，配置已加载。改完点底部「保存设置」。`);
+  } catch(e){
+    showBanner('连接失败：' + e.message + '（检查令牌权限 / 仓库名 / 分支，或网络是否被墙）', true);
+    setStatus($('saveStatus'), '', null);
+  }
+}
+
+async function save(){
+  const btn = $('saveBtn'); btn.disabled = true;
+  setStatus($('saveStatus'), '保存中…', null);
+  try {
+    const cfg = collect();
+    if (!cfg.origins || !cfg.origins.length) { setStatus($('saveStatus'), '请至少添加一个出发地', false); btn.disabled = false; return; }
+    await putConfig(cfg);
+    CONFIG = cfg;
+    setStatus($('saveStatus'), '✅ 已保存到 GitHub，下一轮运行即生效', true);
+  } catch(e){
+    setStatus($('saveStatus'), '保存失败：' + e.message, false);
+  } finally { btn.disabled = false; }
+}
+
+async function testPush(){
+  const key = $('testKey').value.trim();
+  if (!key) { setStatus($('testStatus'), '请先填临时 SendKey', false); return; }
+  const btn = $('testBtn'); btn.disabled = true;
+  setStatus($('testStatus'), '发送中…', null);
+  try {
+    await fetch(`https://sctapi.ftqq.com/${key}.send`, {
+      method: 'POST', mode: 'no-cors',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'title=机票锁定测试&desp=如果你在微信收到这条，说明Server酱推送正常',
+    });
+    setStatus($('testStatus'), '✅ 已发送（no-cors 模式不读响应，去微信确认）', true);
+  } catch(e){
+    setStatus($('testStatus'), '失败：' + e.message, false);
+  } finally { btn.disabled = false; }
+}
+
+$('connectBtn').addEventListener('click', connect);
+$('saveBtn').addEventListener('click', save);
+$('testBtn').addEventListener('click', testPush);
+
+// 自动回填已记住的令牌
+(function restore(){
+  try {
+    const s = localStorage.getItem('fw_gh');
+    if (s) { const o = JSON.parse(s); $('token').value = o.token || ''; $('owner').value = o.owner || 'JohnWish1590'; $('repo').value = o.repo || 'ticketmonitor'; $('branch').value = o.branch || 'master'; $('remember').value = 'yes'; }
+  } catch(e){}
+})();
+</script>
+</body>
+</html>
