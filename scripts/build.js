@@ -172,16 +172,41 @@ h1 small{font-weight:500;font-size:12px;color:var(--tx2);margin-left:8px}
 .pick-sub{font-size:11px;color:var(--tx2);line-height:1.45}
 .pick-sub em{font-style:normal;color:var(--green);font-weight:600}
 
-/* ---- main ---- */
-.main{display:grid;grid-template-columns:1fr 460px;gap:12px;height:calc(100vh - 40px);min-height:640px}
-@media(max-width:1100px){.main{grid-template-columns:1fr;height:auto}}
+/* ---- main：筛选 + 日历 + 结果 竖向堆叠 ---- */
+.main{display:flex;flex-direction:column;gap:12px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
-#map{width:100%;height:100%;min-height:520px;background:#e8eef4}
-.map-legend{position:absolute;right:12px;bottom:22px;z-index:500;background:rgba(255,255,255,.94);
-  border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:11px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-.map-legend div{display:flex;align-items:center;gap:6px;margin:2px 0}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
 .map-wrap{position:relative;height:100%}
+
+/* ---- 低价出发日历 ---- */
+.cal{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.cal-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.cal-hd .ttl{font-size:14px;font-weight:700}
+.cal-hd .ttl small{font-weight:500;font-size:11.5px;color:var(--tx2);margin-left:6px}
+.cal-nav{display:flex;gap:6px;align-items:center}
+.cal-nav button{appearance:none;border:1px solid var(--line);background:#fff;color:var(--tx);border-radius:8px;
+  width:30px;height:30px;font-size:16px;cursor:pointer;transition:.12s}
+.cal-nav button:hover{border-color:#c9d2e0;background:#fafbfc}
+.cal-nav .mon{font-size:13px;font-weight:600;min-width:84px;text-align:center}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-wd{font-size:11px;color:var(--tx3);text-align:center;padding:2px 0}
+.cal-cell{border:1px solid var(--line2);border-radius:8px;padding:6px;min-height:46px;background:#fafbfc;
+  display:flex;flex-direction:column;justify-content:center;gap:2px;cursor:pointer;transition:.12s;position:relative}
+.cal-cell:hover{border-color:#c3cddd}
+.cal-cell.dim{opacity:.4;cursor:default;background:transparent}
+.cal-cell.empty{background:transparent;border-color:transparent;cursor:default}
+.cal-cell.sel{border-color:var(--blue);box-shadow:0 0 0 2px var(--blue-soft)}
+.cal-cell .d{font-size:11px;color:var(--tx3)}
+.cal-cell .p{font-weight:700;font-size:14px;font-variant-numeric:tabular-nums;line-height:1.1}
+.cal-cell .t{font-size:9px;font-weight:600;align-self:flex-start;padding:0 4px;border-radius:3px;margin-top:1px}
+.cal-legend{display:flex;gap:14px;margin-top:10px;font-size:11px;color:var(--tx2);flex-wrap:wrap}
+.cal-legend span{display:flex;align-items:center;gap:5px}
+.cal-legend i{width:11px;height:11px;border-radius:3px;display:inline-block}
+@media(max-width:560px){
+  .cal-grid{gap:4px}
+  .cal-cell{min-height:40px;padding:4px}
+  .cal-cell .p{font-size:12px}
+}
 
 /* ---- list ---- */
 .list-hd{padding:10px 12px;border-bottom:1px solid var(--line2);display:flex;flex-direction:column;gap:8px}
@@ -224,7 +249,7 @@ input[type=text]{flex:1}
 .selrgroup-hd{font-size:10.5px;font-weight:700;color:var(--tx3);margin:7px 2px 2px}
 .selempty{padding:10px 4px;color:var(--tx3);font-size:12px;text-align:center}
 
-#list{overflow-y:auto;flex:1;padding:8px}
+#list{overflow-y:auto;flex:1;padding:8px;max-height:76vh}
 #list::-webkit-scrollbar{width:8px}
 #list::-webkit-scrollbar-thumb{background:#d3d8e0;border-radius:4px}
 .item{border:1px solid var(--line);border-radius:9px;padding:9px 10px;margin-bottom:7px;cursor:pointer;transition:.13s;background:#fff}
@@ -258,9 +283,6 @@ input[type=text]{flex:1}
 .mk{border-radius:50%;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.3)}
 .mk-lbl{background:rgba(255,255,255,.93);border:1px solid var(--line);border-radius:4px;padding:0 4px;
   font-size:10px;font-weight:600;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.12)}
-/* 地图航线：默认所有航线淡色，选中时高亮 */
-.line-dim{opacity:.28;stroke-dasharray:3,4}
-.line-hl{opacity:.9;stroke-dasharray:6,4;filter:drop-shadow(0 0 2px rgba(0,0,0,.25))}
 
 /* ---- weather module ---- */
 .sec{border-top:1px solid var(--line);margin-top:16px;padding-top:14px}
@@ -413,18 +435,7 @@ input[type=text]{flex:1}
   <div class="picks" id="picks"></div>
 
   <div class="main">
-    <div class="card"><div class="map-wrap">
-      <div id="map"></div>
-      <div class="map-legend">
-        <div><span class="dot" style="background:#d62828"></span> ¥0 ~ 500</div>
-        <div><span class="dot" style="background:#e02b3c"></span> 500 ~ ${data.tiers.a}</div>
-        <div><span class="dot" style="background:#f0731e"></span> ${data.tiers.a} ~ ${Math.round((data.tiers.a+data.tiers.b)/2)}</div>
-        <div><span class="dot" style="background:#e0a91e"></span> ${Math.round((data.tiers.a+data.tiers.b)/2)} ~ ${data.tiers.b}</div>
-        <div><span class="dot" style="background:#2563d9"></span> > ¥${data.tiers.b}</div>
-        <div style="color:#8b93a1;margin-top:3px">圆点越大＝可选航班/日期越多<br>虚线＝航线（默认淡色，选中高亮）</div>
-      </div>
-    </div></div>
-
+    <!-- 筛选 -->
     <div class="card">
       <div class="list-hd">
         <div class="flabel">区域</div>
@@ -447,7 +458,7 @@ input[type=text]{flex:1}
           </div>
         </div>
         <div class="seltags empty" id="destSelTags" data-lb="已选目的地" data-empty="显示全部城市"><span class="lb">已选目的地</span><span class="empty-msg">显示全部城市</span></div>
-        <div class="seltags empty" id="filterSelTags" data-lb="其他筛选" data-empty="区域/档位/搜索/窗口/时长"><span class="lb">其他筛选</span><span class="empty-msg">区域/档位/搜索/窗口/时长</span></div>
+        <div class="seltags empty" id="filterSelTags" data-lb="其他筛选" data-empty="区域/档位/搜索/窗口/时长/出发日"><span class="lb">其他筛选</span><span class="empty-msg">区域/档位/搜索/窗口/时长/出发日</span></div>
         <div class="dfilter">
           <div class="cell" title="仅在已抓取的数据里筛选；要抓更广的日期请去设置页改 config.json">
             <span class="lb">出行窗口</span>
@@ -461,6 +472,31 @@ input[type=text]{flex:1}
           </div>
         </div>
         <div class="dfilter-hint">窗口/时长仅在已抓取的数据里筛选；要抓更广范围请去 <code>设置</code> 改 <code>config.json</code>（需 GitHub PAT）</div>
+      </div>
+    </div>
+
+    <!-- 低价出发日历 -->
+    <div class="cal">
+      <div class="cal-hd">
+        <div class="ttl">低价出发日历 <small id="calSub">点击某天查看当日最优航线</small></div>
+        <div class="cal-nav">
+          <button id="calPrev" type="button" aria-label="上个月">‹</button>
+          <span class="mon" id="calMon">—</span>
+          <button id="calNext" type="button" aria-label="下个月">›</button>
+        </div>
+      </div>
+      <div class="cal-grid" id="calGrid"></div>
+      <div class="cal-legend">
+        <span><i style="background:#fdebed"></i> A 特价 &lt;¥${data.tiers.a}</span>
+        <span><i style="background:#fbf3e3"></i> B 优惠 ¥${data.tiers.a}~${data.tiers.b}</span>
+        <span><i style="background:#eaf1f8"></i> C 常规 &gt;¥${data.tiers.b}</span>
+        <span style="color:var(--tx3)">灰格＝窗口外 / 无数据</span>
+      </div>
+    </div>
+
+    <!-- 结果列表 -->
+    <div class="card">
+      <div class="list-hd">
         <div class="tabs">
           <div class="tab on" data-tier="all">全部</div>
           <div class="tab a" data-tier="A">&lt; ¥${data.tiers.a}</div>
@@ -570,64 +606,69 @@ const wOrder=['dry','mild','wet','heavy'];
 let state={tier:'all',sort:'price',q:'',regions:new Set(),origins:new Set(),destinations:new Set(),sel:null,
   // 出行窗口/行程时长（用户可在查询页改，仅对已抓取数据生效；想重抓去设置页改 config.json）
   winStart:DATA.window.start, winEnd:DATA.window.end,
-  durMin:DATA.tripDuration.min, durMax:DATA.tripDuration.max};
+  durMin:DATA.tripDuration.min, durMax:DATA.tripDuration.max,
+  // 低价日历：当前展示月份 + 已选出发日
+  calMonth:(DATA.window.start||'2026-08').slice(0,7), depDate:null};
 function tripDays(a,b){return Math.round((Date.parse(b+'T00:00:00Z')-Date.parse(a+'T00:00:00Z'))/86400000);}
 const byKey={}; DATA.routes.forEach(r=>{ r._id=(r.originCode||'?')+'|'+r.code; byKey[r._id]=r; });
 
-/* ---------- 地图 ---------- */
-// 地图默认中心：亚洲（上海/广州/北京/曼谷/东京/首尔/马来/印尼 都进画框），zoom=3 看全亚洲+部分其他
-const map=L.map('map',{zoomControl:true,worldCopyJump:true,minZoom:2}).setView([20,108],3);
-L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
-  {subdomains:['1','2','3','4'],maxZoom:16,attribution:'&copy; 高德地图'}).addTo(map);
-(DATA.origins||[]).forEach(o=>{
-  L.circleMarker([o.lat,o.lng],{radius:7,color:'#fff',weight:2,fillColor:'#2563d9',fillOpacity:1}).addTo(map)
-    .bindTooltip(o.city + ' ' + o.code + ' · 出发地',{permanent:false});
-});
-const layer=L.layerGroup().addTo(map);
-const lineLayer=L.layerGroup().addTo(map);
-const markers={};
-
-function radiusOf(r){ const n=r.optionCount+r.datePairsInBudget; return Math.max(5,Math.min(15,4+Math.sqrt(n)*1.5)); }
-// 按价格分 5 档颜色（参考 a9f7 TIER_PALETTE）：越便宜越红
-function colorOf(r){
-  const p=r.minPrice;
-  if(p<500) return '#d62828';     // 极便宜
-  if(p<1000) return '#e02b3c';    // A档上
-  if(p<1500) return '#f0731e';    // A-B 过渡
-  if(p<2000) return '#e0a91e';    // B档
-  return '#2563d9';               // 高价
-}
-
-function drawMap(rows){
-  layer.clearLayers(); lineLayer.clearLayers(); Object.keys(markers).forEach(k=>delete markers[k]);
+/* ---------- 低价出发日历（替代原航班地图） ---------- */
+// 在已筛选航线中，按「出发日」聚合最低往返价（跨所有目的地取最便宜）
+function datePriceMap(rows){
+  const m={};
   rows.forEach(r=>{
-    const m=L.circleMarker([r.lat,r.lng],{radius:radiusOf(r),color:'#fff',weight:1.5,
-      fillColor:colorOf(r),fillOpacity:.82,className:'mk'}).addTo(layer);
-    m.bindTooltip('<b>'+r.city+'('+r.code+')</b> ¥'+r.minPrice+'<br><span style="color:#666">'+r.options[0].depDate.slice(5)+' 去 / '+r.options[0].retDate.slice(5)+' 回 · 自 '+(r.originCity||r.originCode)+'</span>',
-      {direction:'top',offset:[0,-4]});
-    m.on('click',()=>select(r._id,true));
-    markers[r._id]=m;
-    // 默认画所有航线的淡色连线
-    drawRouteArc(r, {weight:1.4, opacity:.32, dashArray:'3,4', className:'line-dim'});
+    const pairs=(r.cheapestPairs&&r.cheapestPairs.length)
+      ? r.cheapestPairs.map(p=>({dep:p.dep,price:p.price}))
+      : (r.options||[]).map(o=>({dep:o.depDate,price:o.price}));
+    pairs.forEach(p=>{ if(m[p.dep]===undefined || p.price<m[p.dep]) m[p.dep]=p.price; });
+  });
+  return m;
+}
+function calTier(p){ return p < DATA.tiers.a ? 'a' : (p <= DATA.tiers.b ? 'b' : 'c'); }
+const CAL_BG={a:'#fdebed',b:'#fbf3e3',c:'#eaf1f8'};
+const CAL_FG={a:'#c2202a',b:'#9a6a14',c:'#185fa5'};
+const CAL_LABEL={a:'A 特价',b:'B 优惠',c:'C 常规'};
+function renderCalendar(){
+  const rows=baseRows(); // 用基础筛选（不含出发日），保证选了某天后日历不塌缩
+  const pm=datePriceMap(rows);
+  const [yy,mm]=state.calMonth.split('-').map(Number);
+  document.getElementById('calMon').textContent=yy+'年'+mm+'月';
+  const days=new Date(Date.UTC(yy,mm,0)).getUTCDate();
+  const lead=(new Date(Date.UTC(yy,mm-1,1)).getUTCDay()+6)%7; // 周一为首列
+  const wd=['一','二','三','四','五','六','日'];
+  let h=wd.map(d=>'<div class="cal-wd">'+d+'</div>').join('');
+  for(let i=0;i<lead;i++) h+='<div class="cal-cell empty"></div>';
+  for(let d=1;d<=days;d++){
+    const ds=yy+'-'+String(mm).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const inWin = ds>=state.winStart && ds<=state.winEnd;
+    const price=pm[ds];
+    const sel = state.depDate===ds;
+    if(price!==undefined && inWin){
+      const t=calTier(price);
+      h+='<div class="cal-cell'+(sel?' sel':'')+'" data-d="'+ds+'">'+
+          '<span class="d">'+String(d)+'</span>'+
+          '<span class="p" style="color:'+CAL_FG[t]+'">¥'+price+'</span>'+
+          '<span class="t" style="background:'+CAL_BG[t]+';color:'+CAL_FG[t]+'">'+CAL_LABEL[t]+'</span>'+
+        '</div>';
+    } else {
+      h+='<div class="cal-cell dim'+(sel?' sel':'')+'"><span class="d">'+String(d)+'</span></div>';
+    }
+  }
+  document.getElementById('calGrid').innerHTML=h;
+  document.querySelectorAll('#calGrid .cal-cell[data-d]').forEach(el=>{
+    el.onclick=()=>{ const ds=el.dataset.d; state.depDate = (state.depDate===ds)?null:ds; render(); };
   });
 }
-// 画 origin→destination 弧线（带跨经线修正 + 高度弧度）
-function drawRouteArc(r, style){
-  const O=(DATA.origins||[]).find(o=>o.code===r.originCode) || (DATA.origins&&DATA.origins[0]);
-  if(!O) return;
-  let lng=r.lng; if(lng-O.lng>180)lng-=360; if(O.lng-lng>180)lng+=360;
-  const pts=[]; const n=48;
-  for(let i=0;i<=n;i++){const t=i/n;
-    const la=O.lat+(r.lat-O.lat)*t + Math.sin(Math.PI*t)*Math.min(18,Math.abs(lng-O.lng)/6+Math.abs(r.lat-O.lat)/6);
-    pts.push([la,O.lng+(lng-O.lng)*t]);}
-  return L.polyline(pts, Object.assign({color:colorOf(r)}, style||{})).addTo(lineLayer);
-}
-function drawLine(r){
-  lineLayer.clearLayers();
-  if(!r) return;
-  // 高亮选中航线
-  drawRouteArc(r, {weight:2.6, opacity:.95, dashArray:'6,4', className:'line-hl'});
-}
+document.getElementById('calPrev').onclick=()=>{
+  const [y,m]=state.calMonth.split('-').map(Number);
+  const ny=m===1?y-1:y, nm=m===1?12:m-1;
+  state.calMonth=ny+'-'+String(nm).padStart(2,'0'); renderCalendar();
+};
+document.getElementById('calNext').onclick=()=>{
+  const [y,m]=state.calMonth.split('-').map(Number);
+  const ny=m===12?y+1:y, nm=m===12?1:m+1;
+  state.calMonth=ny+'-'+String(nm).padStart(2,'0'); renderCalendar();
+};
 
 /* ---------- 列表 ---------- */
 function fmtLeg(o){
@@ -674,8 +715,9 @@ function itemHTML(r){
     legs+'</div>';
 }
 
-function filtered(){
-  let rows=DATA.routes.filter(r=>{
+// 基础筛选（不含「指定出发日」——日历需要看到全部出发日，所以单独拆出）
+function baseRows(){
+  return DATA.routes.filter(r=>{
     if(state.tier!=='all'&&r.tier!==state.tier) return false;
     // 已具体选了城市 → 区域过滤就不必了（避免冗余）；未选城市 → 用区域做范围限定
     if(!state.destinations.size && state.regions.size && !state.regions.has(r.region)) return false;
@@ -708,6 +750,16 @@ function filtered(){
     }
     return true;
   });
+}
+function filtered(){
+  let rows=baseRows();
+  // 指定出发日：仅保留有该出发日的航线
+  if(state.depDate){
+    rows=rows.filter(r=>{
+      const pr=(r.cheapestPairs&&r.cheapestPairs.length)?r.cheapestPairs:(r.options||[]).map(o=>({dep:o.depDate}));
+      return pr.some(p=>p.dep===state.depDate);
+    });
+  }
   const s=state.sort;
   rows.sort((a,b)=> s==='price'?a.minPrice-b.minPrice
     : s==='discount'?b.discountPct-a.discountPct||a.minPrice-b.minPrice
@@ -735,7 +787,8 @@ function render(){
     document.getElementById('list').innerHTML= rows.map(itemHTML).join('');
   }
   document.getElementById('cnt').textContent='共 '+rows.length+' 条航线';
-  drawMap(rows);
+  renderCalendar();
+  document.getElementById('calSub').textContent = state.depDate ? ('已选 '+state.depDate.slice(5)+' · 当日最优航线') : '点击某天查看当日最优航线';
   document.querySelectorAll('.item').forEach(el=>{
     el.onclick=()=>{ const id=el.dataset.id; el.classList.toggle('open'); select(id,false); };
   });
@@ -745,11 +798,10 @@ function render(){
 function select(id,fromMap,quiet){
   state.sel=id;
   document.querySelectorAll('.item').forEach(el=>el.classList.toggle('sel',el.dataset.id===id));
-  const r=byKey[id]; drawLine(r);
   if(fromMap){
     const el=document.querySelector('.item[data-id="'+id+'"]');
     if(el){el.classList.add('open');el.scrollIntoView({behavior:'smooth',block:'center'});}
-  }else if(!quiet&&r){ if(markers[id]) markers[id].openTooltip(); }
+  }
 }
 
 /* ---------- 推荐卡 ---------- */
@@ -780,7 +832,7 @@ function renderPicks(){
       saveFilterLS();
       document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tier==='all'));
       refreshFiltersUI();
-      render(); select(id,true); map.flyTo([r.lat,r.lng],4,{duration:.8}); };
+      render(); select(id,true); };
   });
 }
 
@@ -960,6 +1012,7 @@ function renderFilterSel(){
   if(state.q) parts.push({ html: seltagHTML('搜索', state.q), onRemove: ()=>{ state.q=''; document.getElementById('q').value=''; render(); } });
   if(state.winStart!==DATA.window.start || state.winEnd!==DATA.window.end) parts.push({ html: seltagHTML('窗口', state.winStart.slice(5)+'~'+state.winEnd.slice(5)), onRemove: ()=>{ state.winStart=DATA.window.start; state.winEnd=DATA.window.end; winStartEl.value=state.winStart; winEndEl.value=state.winEnd; saveFilterLS(); render(); } });
   if(state.durMin!==DATA.tripDuration.min || state.durMax!==DATA.tripDuration.max) parts.push({ html: seltagHTML('时长', state.durMin+'~'+state.durMax+'天'), onRemove: ()=>{ state.durMin=DATA.tripDuration.min; state.durMax=DATA.tripDuration.max; durMinEl.value=state.durMin; durMaxEl.value=state.durMax; saveFilterLS(); render(); } });
+  if(state.depDate) parts.push({ html: seltagHTML('出发日', state.depDate.slice(5)), onRemove: ()=>{ state.depDate=null; render(); } });
   renderTagBar('filterSelTags', parts,
     ()=>{ state.regions.clear(); state.tier='all'; state.q=''; state.winStart=DATA.window.start; state.winEnd=DATA.window.end; state.durMin=DATA.tripDuration.min; state.durMax=DATA.tripDuration.max; document.getElementById('q').value=''; document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tier==='all')); winStartEl.value=state.winStart; winEndEl.value=state.winEnd; durMinEl.value=state.durMin; durMaxEl.value=state.durMax; saveFilterLS(); refreshFiltersUI(); render(); });
 }
@@ -973,7 +1026,7 @@ document.getElementById('statAll').textContent=DATA.routes.length;
 document.getElementById('statA').textContent=DATA.routes.filter(r=>r.tier==='A').length;
 document.getElementById('statB').textContent=DATA.routes.filter(r=>r.tier==='B').length;
 renderPicks(); render();
-setTimeout(()=>map.invalidateSize(),300);
+/* 地图已移除，无需 invalidateSize */
 
 /* ---------- 天气模块 ---------- */
 const WEATHER=DATA.weather;
