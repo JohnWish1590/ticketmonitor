@@ -258,6 +258,9 @@ input[type=text]{flex:1}
 .mk{border-radius:50%;border:2px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.3)}
 .mk-lbl{background:rgba(255,255,255,.93);border:1px solid var(--line);border-radius:4px;padding:0 4px;
   font-size:10px;font-weight:600;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+/* 地图航线：默认所有航线淡色，选中时高亮 */
+.line-dim{opacity:.28;stroke-dasharray:3,4}
+.line-hl{opacity:.9;stroke-dasharray:6,4;filter:drop-shadow(0 0 2px rgba(0,0,0,.25))}
 
 /* ---- weather module ---- */
 .sec{border-top:1px solid var(--line);margin-top:16px;padding-top:14px}
@@ -306,18 +309,23 @@ input[type=text]{flex:1}
 .settings-btn:active{transform:scale(.98)}
 .flabel{font-size:11px;font-weight:600;color:var(--tx3);margin:2px 0 -2px;letter-spacing:.2px}
 
-/* ---- 已选筛选摘要 ---- */
-.selected-bar{display:flex;align-items:center;flex-wrap:wrap;gap:5px;padding:6px 8px;background:#fafbfc;
-  border:1px dashed var(--line);border-radius:8px;min-height:30px}
-.selected-bar .lb{font-size:10.5px;color:var(--tx3);font-weight:600;margin-right:2px;letter-spacing:.3px}
-.seltag{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 4px 2px 8px;
-  background:var(--blue-soft);border:1px solid #c9d8f0;color:var(--blue);border-radius:14px;font-weight:500}
-.seltag .x{cursor:pointer;font-size:14px;line-height:1;padding:0 4px;color:var(--blue);opacity:.7;transition:.12s}
-.seltag .x:hover{opacity:1;background:rgba(24,95,165,.12);border-radius:50%}
-.seltag .em{color:var(--tx2);font-weight:400;margin-left:2px}
-.selected-bar .clr{font-size:10.5px;color:var(--tx3);cursor:pointer;padding:2px 6px;margin-left:auto;text-decoration:underline dotted}
-.selected-bar .clr:hover{color:var(--red)}
-.selected-bar.empty .empty-msg{color:var(--tx3);font-size:11.5px}
+/* ---- 已选筛选摘要：每个控件下方各自的胶囊区 ---- */
+.seltags{display:flex;align-items:center;flex-wrap:wrap;gap:5px;padding:5px 8px;background:#fafbfc;
+  border:1px dashed var(--line);border-radius:8px;min-height:28px;margin-top:5px}
+.seltags.empty{background:transparent;border-color:var(--line2);color:var(--tx3)}
+.seltags .lb{font-size:10.5px;color:var(--tx3);font-weight:700;margin-right:2px;letter-spacing:.3px}
+.seltags .empty-msg{color:var(--tx3);font-size:11px}
+.seltags .clr{font-size:10.5px;color:var(--tx3);cursor:pointer;padding:2px 6px;margin-left:auto;text-decoration:underline dotted}
+.seltags .clr:hover{color:var(--red)}
+/* 胶囊 */
+.seltags .seltag{display:inline-flex;align-items:center;gap:3px;font-size:11px;padding:2px 4px 2px 8px;
+  background:var(--blue-soft);border:1px solid #c9d8f0;color:var(--blue);border-radius:14px;font-weight:500;white-space:nowrap}
+.seltags .seltag .em{color:var(--tx2);font-weight:400;margin-left:2px}
+.seltags .seltag .x{cursor:pointer;font-size:14px;line-height:1;padding:0 4px;color:var(--blue);opacity:.7;transition:.12s}
+.seltags .seltag .x:hover{opacity:1;background:rgba(24,95,165,.12);border-radius:50%}
+/* 监控外机场：灰化+小字提示 */
+.sello.unmonitored{color:var(--tx3);background:transparent}
+.sello.unmonitored::after{content:'未监控';font-size:9.5px;color:#c08a00;background:#fff5d9;padding:1px 4px;border-radius:3px;margin-left:auto;font-weight:600}
 
 /* ---- 日期窗口 / 行程时长 筛选行 ---- */
 .dfilter{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:2px}
@@ -408,9 +416,12 @@ input[type=text]{flex:1}
     <div class="card"><div class="map-wrap">
       <div id="map"></div>
       <div class="map-legend">
-        <div><span class="dot" style="background:#e02b3c"></span> 往返 &lt; ¥${data.tiers.a}</div>
-        <div><span class="dot" style="background:#e08a1e"></span> 往返 ¥${data.tiers.a} ~ ¥${data.tiers.b}</div>
-        <div style="color:#8b93a1;margin-top:3px">圆点越大＝可选航班/日期越多</div>
+        <div><span class="dot" style="background:#d62828"></span> ¥0 ~ 500</div>
+        <div><span class="dot" style="background:#e02b3c"></span> 500 ~ ${data.tiers.a}</div>
+        <div><span class="dot" style="background:#f0731e"></span> ${data.tiers.a} ~ ${Math.round((data.tiers.a+data.tiers.b)/2)}</div>
+        <div><span class="dot" style="background:#e0a91e"></span> ${Math.round((data.tiers.a+data.tiers.b)/2)} ~ ${data.tiers.b}</div>
+        <div><span class="dot" style="background:#2563d9"></span> > ¥${data.tiers.b}</div>
+        <div style="color:#8b93a1;margin-top:3px">圆点越大＝可选航班/日期越多<br>虚线＝航线（默认淡色，选中高亮）</div>
       </div>
     </div></div>
 
@@ -426,6 +437,7 @@ input[type=text]{flex:1}
             <div class="sellist" id="originList"></div>
           </div>
         </div>
+        <div class="seltags empty" id="originSelTags" data-lb="已选出发地" data-empty="显示全部出发地机场"><span class="lb">已选出发地</span><span class="empty-msg">显示全部出发地机场</span></div>
         <div class="flabel">目的地（按城市）</div>
         <div class="selwrap">
           <button class="selbtn" id="destBtn" type="button"><span id="destBtnTxt">全部目的地</span><span class="caret">▾</span></button>
@@ -434,7 +446,8 @@ input[type=text]{flex:1}
             <div class="sellist" id="destList"></div>
           </div>
         </div>
-        <div class="selected-bar empty" id="selectedBar"><span class="lb">已选</span><span class="empty-msg">未筛选 · 显示全部</span></div>
+        <div class="seltags empty" id="destSelTags" data-lb="已选目的地" data-empty="显示全部城市"><span class="lb">已选目的地</span><span class="empty-msg">显示全部城市</span></div>
+        <div class="seltags empty" id="filterSelTags" data-lb="其他筛选" data-empty="区域/档位/搜索/窗口/时长"><span class="lb">其他筛选</span><span class="empty-msg">区域/档位/搜索/窗口/时长</span></div>
         <div class="dfilter">
           <div class="cell" title="仅在已抓取的数据里筛选；要抓更广的日期请去设置页改 config.json">
             <span class="lb">出行窗口</span>
@@ -562,8 +575,8 @@ function tripDays(a,b){return Math.round((Date.parse(b+'T00:00:00Z')-Date.parse(
 const byKey={}; DATA.routes.forEach(r=>{ r._id=(r.originCode||'?')+'|'+r.code; byKey[r._id]=r; });
 
 /* ---------- 地图 ---------- */
-// 地图默认中心：亚洲（上海/广州/北京/曼谷/东京/首尔都进画框），zoom=4 让东南亚/日韩不被挤边
-const map=L.map('map',{zoomControl:true,worldCopyJump:true,minZoom:2}).setView([22,108],4);
+// 地图默认中心：亚洲（上海/广州/北京/曼谷/东京/首尔/马来/印尼 都进画框），zoom=3 看全亚洲+部分其他
+const map=L.map('map',{zoomControl:true,worldCopyJump:true,minZoom:2}).setView([20,108],3);
 L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
   {subdomains:['1','2','3','4'],maxZoom:16,attribution:'&copy; 高德地图'}).addTo(map);
 (DATA.origins||[]).forEach(o=>{
@@ -575,7 +588,15 @@ const lineLayer=L.layerGroup().addTo(map);
 const markers={};
 
 function radiusOf(r){ const n=r.optionCount+r.datePairsInBudget; return Math.max(5,Math.min(15,4+Math.sqrt(n)*1.5)); }
-function colorOf(r){ return r.tier==='A'?'#e02b3c':'#e08a1e'; }
+// 按价格分 5 档颜色（参考 a9f7 TIER_PALETTE）：越便宜越红
+function colorOf(r){
+  const p=r.minPrice;
+  if(p<500) return '#d62828';     // 极便宜
+  if(p<1000) return '#e02b3c';    // A档上
+  if(p<1500) return '#f0731e';    // A-B 过渡
+  if(p<2000) return '#e0a91e';    // B档
+  return '#2563d9';               // 高价
+}
 
 function drawMap(rows){
   layer.clearLayers(); lineLayer.clearLayers(); Object.keys(markers).forEach(k=>delete markers[k]);
@@ -586,11 +607,12 @@ function drawMap(rows){
       {direction:'top',offset:[0,-4]});
     m.on('click',()=>select(r._id,true));
     markers[r._id]=m;
+    // 默认画所有航线的淡色连线
+    drawRouteArc(r, {weight:1.4, opacity:.32, dashArray:'3,4', className:'line-dim'});
   });
 }
-function drawLine(r){
-  lineLayer.clearLayers();
-  if(!r) return;
+// 画 origin→destination 弧线（带跨经线修正 + 高度弧度）
+function drawRouteArc(r, style){
   const O=(DATA.origins||[]).find(o=>o.code===r.originCode) || (DATA.origins&&DATA.origins[0]);
   if(!O) return;
   let lng=r.lng; if(lng-O.lng>180)lng-=360; if(O.lng-lng>180)lng+=360;
@@ -598,7 +620,13 @@ function drawLine(r){
   for(let i=0;i<=n;i++){const t=i/n;
     const la=O.lat+(r.lat-O.lat)*t + Math.sin(Math.PI*t)*Math.min(18,Math.abs(lng-O.lng)/6+Math.abs(r.lat-O.lat)/6);
     pts.push([la,O.lng+(lng-O.lng)*t]);}
-  L.polyline(pts,{color:colorOf(r),weight:2,opacity:.85,dashArray:'5,4'}).addTo(lineLayer);
+  return L.polyline(pts, Object.assign({color:colorOf(r)}, style||{})).addTo(lineLayer);
+}
+function drawLine(r){
+  lineLayer.clearLayers();
+  if(!r) return;
+  // 高亮选中航线
+  drawRouteArc(r, {weight:2.6, opacity:.95, dashArray:'6,4', className:'line-hl'});
 }
 
 /* ---------- 列表 ---------- */
@@ -689,7 +717,23 @@ function filtered(){
 }
 function render(){
   const rows=filtered();
-  document.getElementById('list').innerHTML= rows.length?rows.map(itemHTML).join(''):'<div class="empty">没有符合条件的航线</div>';
+  if(!rows.length){
+    // 智能提示：当前筛选下为什么没结果
+    let hint='没有符合条件的航线。';
+    if(state.origins.size){
+      const allUnmon=[...state.origins].every(c=>!monitoredOrigins.has(c));
+      if(allUnmon) hint='所选出发地都未监控：' + [...state.origins].map(c=>c).join('、') + '。去 <code>⚙ 设置</code> 改 config.json 加监控。';
+      else if(state.destinations.size && DATA.routes.filter(r=>[...state.origins].includes(r.originCode) && [...state.destinations].includes(r.city)).length===0){
+        hint='已监控的出发地没有匹配所选目的地的数据（窗口/时长也参与筛选）。';
+      }
+    } else if(!monitoredOrigins.size){
+      hint='当前没有监控任何出发地。请去 <code>⚙ 设置</code> 配置。';
+    }
+    document.getElementById('list').innerHTML='<div class="empty" style="line-height:1.7">'+hint+'<br><a id="clrEmpty" style="color:var(--blue);cursor:pointer;font-size:11.5px;text-decoration:underline dotted">清空筛选</a></div>';
+    document.getElementById('clrEmpty').onclick=()=>{ state.regions.clear(); state.origins.clear(); state.destinations.clear(); state.q=''; state.tier='all'; state.winStart=DATA.window.start; state.winEnd=DATA.window.end; state.durMin=DATA.tripDuration.min; state.durMax=DATA.tripDuration.max; document.getElementById('q').value=''; document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tier==='all')); winStartEl.value=state.winStart; winEndEl.value=state.winEnd; durMinEl.value=state.durMin; durMaxEl.value=state.durMax; saveFilterLS(); refreshFiltersUI(); render(); };
+  } else {
+    document.getElementById('list').innerHTML= rows.map(itemHTML).join('');
+  }
   document.getElementById('cnt').textContent='共 '+rows.length+' 条航线';
   drawMap(rows);
   document.querySelectorAll('.item').forEach(el=>{
@@ -770,11 +814,16 @@ document.querySelectorAll('#regions .chip').forEach(c=>c.onclick=()=>{
 
 // ===== 出发地（按机场）可搜索多选下拉 =====
 const originMeta=DATA.originCatalog||[];
+const monitoredOrigins=new Set((DATA.origins||[]).map(o=>o.code));
 function renderOriginList(q){
   const kw=(q||'').trim().toLowerCase();
   const items=originMeta.filter(o=>!kw || (o.code||'').toLowerCase().includes(kw) || (o.city||'').toLowerCase().includes(kw));
   document.getElementById('originList').innerHTML= items.length
-    ? items.map(o=>'<div class="sello'+(state.origins.has(o.code)?' on':'')+'" data-o="'+o.code+'">'+o.city+'<span class="code">'+o.code+'</span></div>').join('')
+    ? items.map(o=>{
+        const on=state.origins.has(o.code);
+        const unmon=!monitoredOrigins.has(o.code);
+        return '<div class="sello'+(on?' on':'')+(unmon?' unmonitored':'')+'" data-o="'+o.code+'">'+o.city+'<span class="code">'+o.code+'</span></div>';
+      }).join('')
     : '<div class="selempty">无匹配机场</div>';
   document.querySelectorAll('#originList .sello').forEach(el=>el.onclick=()=>{
     const c=el.dataset.o;
@@ -868,61 +917,56 @@ durMinEl.onchange=onFilterChange; durMaxEl.onchange=onFilterChange;
 document.getElementById('winRst').onclick=()=>{ state.winStart=DATA.window.start; state.winEnd=DATA.window.end; winStartEl.value=state.winStart; winEndEl.value=state.winEnd; saveFilterLS(); render(); };
 document.getElementById('durRst').onclick=()=>{ state.durMin=DATA.tripDuration.min; state.durMax=DATA.tripDuration.max; durMinEl.value=state.durMin; durMaxEl.value=state.durMax; saveFilterLS(); render(); };
 
-// ===== 已选筛选摘要 =====
-function seltagHTML(label, sub, onRemove){
-  return '<span class="seltag">'+label+(sub?'<span class="em">'+sub+'</span>':'')+'<span class="x" title="移除" data-rm="1">×</span></span>';
+// ===== 已选筛选摘要（拆 3 个，分别贴在控件下方）=====
+function seltagHTML(label, sub){
+  return '<span class="seltag">'+label+(sub?'<span class="em">'+sub+'</span>':'')+'<span class="x" title="移除">×</span></span>';
 }
-function renderSelected(){
-  const bar=document.getElementById('selectedBar');
-  const parts=[];
-  if(state.regions.size){
-    [...state.regions].forEach(r=>parts.push(seltagHTML(REGION_NAME[r],'区域',()=>{ state.regions.delete(r); refreshFiltersUI(); render(); })));
-  }
-  if(state.origins.size){
-    const om={}; (DATA.originCatalog||[]).forEach(o=>om[o.code]=o);
-    [...state.origins].forEach(c=>parts.push(seltagHTML((om[c]&&om[c].city)||c, c,()=>{ state.origins.delete(c); refreshFiltersUI(); render(); })));
-  }
-  if(state.destinations.size){
-    [...state.destinations].forEach(c=>parts.push(seltagHTML(c,'' ,()=>{ state.destinations.delete(c); refreshFiltersUI(); render(); })));
-  }
-  if(state.winStart!==DATA.window.start || state.winEnd!==DATA.window.end){
-    parts.push(seltagHTML('窗口', state.winStart.slice(5)+'~'+state.winEnd.slice(5), ()=>{
-      state.winStart=DATA.window.start; state.winEnd=DATA.window.end;
-      winStartEl.value=state.winStart; winEndEl.value=state.winEnd; saveFilterLS(); render();
-    }));
-  }
-  if(state.durMin!==DATA.tripDuration.min || state.durMax!==DATA.tripDuration.max){
-    parts.push(seltagHTML('时长', state.durMin+'~'+state.durMax+'天', ()=>{
-      state.durMin=DATA.tripDuration.min; state.durMax=DATA.tripDuration.max;
-      durMinEl.value=state.durMin; durMaxEl.value=state.durMax; saveFilterLS(); render();
-    }));
-  }
-  if(state.tier!=='all') parts.push(seltagHTML('档位', state.tier==='A'?'<¥'+DATA.tiers.a:'¥'+DATA.tiers.a+'~'+DATA.tiers.b, ()=>{
-    state.tier='all'; document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tier==='all')); render();
-  }));
-  if(state.q) parts.push(seltagHTML('搜索', state.q, ()=>{ state.q=''; document.getElementById('q').value=''; render(); }));
+function renderTagBar(elId, parts, clearFn){
+  const bar=document.getElementById(elId);
   if(!parts.length){
     bar.classList.add('empty');
-    bar.innerHTML='<span class="lb">已选</span><span class="empty-msg">未筛选 · 显示全部</span>';
-  } else {
-    bar.classList.remove('empty');
-    bar.innerHTML='<span class="lb">已选</span>'+parts.join('')+'<span class="clr" id="clrAll">清空筛选</span>';
-    document.getElementById('clrAll').onclick=()=>{
-      state.regions.clear(); state.origins.clear(); state.destinations.clear(); state.q=''; state.tier='all';
-      state.winStart=DATA.window.start; state.winEnd=DATA.window.end; state.durMin=DATA.tripDuration.min; state.durMax=DATA.tripDuration.max;
-      document.getElementById('q').value='';
-      document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tier==='all'));
-      winStartEl.value=state.winStart; winEndEl.value=state.winEnd;
-      durMinEl.value=state.durMin; durMaxEl.value=state.durMax;
-      saveFilterLS(); refreshFiltersUI(); render();
-    };
-    bar.querySelectorAll('.seltag').forEach(el=>el.onclick=(e)=>{
-      if(e.target.classList.contains('x')){ el.style.display='none'; const fn=el._rm; if(fn) fn(); }
-    });
-    // 直接挂每个 tag 的回调
-    let i=0;
-    bar.querySelectorAll('.seltag').forEach(el=>{ el._rm=parts[i++].onRemove||(()=>{}); el.onclick=(e)=>{ if(e.target.classList.contains('x')){ e.stopPropagation(); el._rm(); } }; });
+    bar.innerHTML='<span class="lb">'+bar.dataset.lb+'</span><span class="empty-msg">'+bar.dataset.empty+'</span>';
+    return;
   }
+  bar.classList.remove('empty');
+  let html='<span class="lb">'+bar.dataset.lb+'</span>'+parts.map(p=>p.html).join('');
+  if(clearFn) html+='<span class="clr">清空</span>';
+  bar.innerHTML=html;
+  const tags=bar.querySelectorAll('.seltag');
+  parts.forEach((p,i)=>{ if(tags[i]) tags[i].onclick=(e)=>{ if(e.target.classList.contains('x')){ e.stopPropagation(); p.onRemove(); } }; });
+  if(clearFn){ bar.querySelector('.clr').onclick=clearFn; }
+}
+function renderOriginSel(){
+  const om={}; (DATA.originCatalog||[]).forEach(o=>om[o.code]=o);
+  const parts=[...state.origins].map(c=>({
+    html: seltagHTML((om[c]&&om[c].city)||c, c+(monitoredOrigins.has(c)?'':' · 未监控')),
+    onRemove: ()=>{ state.origins.delete(c); refreshFiltersUI(); render(); },
+  }));
+  renderTagBar('originSelTags', parts,
+    ()=>{ state.origins.clear(); refreshFiltersUI(); render(); });
+}
+function renderDestSel(){
+  const parts=[...state.destinations].map(c=>({
+    html: seltagHTML(c, ''),
+    onRemove: ()=>{ state.destinations.delete(c); refreshFiltersUI(); render(); },
+  }));
+  renderTagBar('destSelTags', parts,
+    ()=>{ state.destinations.clear(); refreshFiltersUI(); render(); });
+}
+function renderFilterSel(){
+  const parts=[];
+  [...state.regions].forEach(r=>parts.push({ html: seltagHTML(REGION_NAME[r],'区域'), onRemove: ()=>{ state.regions.delete(r); refreshFiltersUI(); render(); } }));
+  if(state.tier!=='all') parts.push({ html: seltagHTML('档位', state.tier==='A'?'<¥'+DATA.tiers.a:'¥'+DATA.tiers.a+'~'+DATA.tiers.b), onRemove: ()=>{ state.tier='all'; document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tier==='all')); render(); } });
+  if(state.q) parts.push({ html: seltagHTML('搜索', state.q), onRemove: ()=>{ state.q=''; document.getElementById('q').value=''; render(); } });
+  if(state.winStart!==DATA.window.start || state.winEnd!==DATA.window.end) parts.push({ html: seltagHTML('窗口', state.winStart.slice(5)+'~'+state.winEnd.slice(5)), onRemove: ()=>{ state.winStart=DATA.window.start; state.winEnd=DATA.window.end; winStartEl.value=state.winStart; winEndEl.value=state.winEnd; saveFilterLS(); render(); } });
+  if(state.durMin!==DATA.tripDuration.min || state.durMax!==DATA.tripDuration.max) parts.push({ html: seltagHTML('时长', state.durMin+'~'+state.durMax+'天'), onRemove: ()=>{ state.durMin=DATA.tripDuration.min; state.durMax=DATA.tripDuration.max; durMinEl.value=state.durMin; durMaxEl.value=state.durMax; saveFilterLS(); render(); } });
+  renderTagBar('filterSelTags', parts,
+    ()=>{ state.regions.clear(); state.tier='all'; state.q=''; state.winStart=DATA.window.start; state.winEnd=DATA.window.end; state.durMin=DATA.tripDuration.min; state.durMax=DATA.tripDuration.max; document.getElementById('q').value=''; document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tier==='all')); winStartEl.value=state.winStart; winEndEl.value=state.winEnd; durMinEl.value=state.durMin; durMaxEl.value=state.durMax; saveFilterLS(); refreshFiltersUI(); render(); });
+}
+function renderSelected(){
+  renderOriginSel();
+  renderDestSel();
+  renderFilterSel();
 }
 
 document.getElementById('statAll').textContent=DATA.routes.length;
@@ -940,7 +984,7 @@ document.getElementById('wgMild').textContent=WEATHER.gradeCounts.mild||0;
 document.getElementById('wgWet').textContent=WEATHER.gradeCounts.wet||0;
 document.getElementById('wgHeavy').textContent=WEATHER.gradeCounts.heavy||0;
 
-const wmap=L.map('wmap',{zoomControl:true,worldCopyJump:true,minZoom:1}).setView([20,108],4);
+const wmap=L.map('wmap',{zoomControl:true,worldCopyJump:true,minZoom:1}).setView([20,108],3);
 L.tileLayer('https://webrd0{s}.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}',
   {subdomains:['1','2','3','4'],maxZoom:16,attribution:'&copy; 高德地图'}).addTo(wmap);
 (DATA.origins||[]).forEach(o=>{
