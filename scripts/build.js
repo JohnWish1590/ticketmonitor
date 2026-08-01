@@ -230,13 +230,13 @@ input[type=text]{flex:1}
 .count{font-size:11px;color:var(--tx3);padding:0 2px}
 
 /* ---- 出发地 / 目的地 可搜索下拉（参考常见机票网站）---- */
-.selwrap{position:relative}
-.selbtn{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;
+.selwrap{position:relative;display:inline-block;max-width:100%}
+.selbtn{display:inline-flex;justify-content:space-between;align-items:center;gap:8px;width:auto;min-width:180px;max-width:300px;
   border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12px;background:#fff;color:var(--tx);cursor:pointer;transition:.12s}
 .selbtn:hover{border-color:#c9c2e0}
 .selbtn.has{border-color:#b9cdf5;color:var(--blue);background:var(--blue-soft)}
 .selbtn .caret{color:var(--tx3);font-size:10px}
-.selpanel{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:600;background:#fff;
+.selpanel{position:absolute;top:calc(100% + 4px);left:0;z-index:600;background:#fff;min-width:280px;
   border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 26px rgba(20,30,50,.16);padding:8px;max-height:290px;overflow:auto}
 .selpanel[hidden]{display:none}
 .selfilter{width:100%;margin-bottom:6px}
@@ -350,13 +350,13 @@ input[type=text]{flex:1}
 .sello.unmonitored::after{content:'未监控';font-size:9.5px;color:#c08a00;background:#fff5d9;padding:1px 4px;border-radius:3px;margin-left:auto;font-weight:600}
 
 /* ---- 日期窗口 / 行程时长 筛选行 ---- */
-.dfilter{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:2px}
+.dfilter{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
 .dfilter .cell{display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:8px;padding:4px 8px;background:#fff;transition:.12s}
 .dfilter .cell:focus-within{border-color:var(--blue);box-shadow:0 0 0 3px var(--blue-soft)}
 .dfilter .cell .lb{font-size:10.5px;color:var(--tx3);font-weight:600;letter-spacing:.2px;flex:0 0 auto}
 .dfilter .cell input[type=date],.dfilter .cell input[type=number]{border:none;outline:none;font-size:12px;
   font-family:inherit;color:var(--tx);background:transparent;flex:1;min-width:0;padding:2px 0}
-.dfilter .cell input[type=number]{width:100%}
+.dfilter .cell input[type=number]{width:auto;max-width:4.5em}
 .dfilter .cell .sep{color:var(--tx3);font-size:11px}
 .dfilter .cell .rst{font-size:10px;color:var(--tx3);cursor:pointer;padding:0 4px;flex:0 0 auto}
 .dfilter .cell .rst:hover{color:var(--blue)}
@@ -420,8 +420,8 @@ input[type=text]{flex:1}
     <div>
       <h1>机票锁定<small>全国机票低价监控 · 自选出发地</small></h1>
       <div class="meta" style="margin-top:8px">
-        <span class="pill">出行窗口 <b>${data.window.start} ~ ${data.window.end.slice(5)}</b></span>
-        <span class="pill">行程时长 <b>${data.tripDuration.min} ~ ${data.tripDuration.max} 天</b></span>
+        <span class="pill">出行窗口 <b id="statWin">${data.window.start} ~ ${data.window.end.slice(5)}</b></span>
+        <span class="pill">行程时长 <b id="statDur">${data.tripDuration.min} ~ ${data.tripDuration.max} 天</b></span>
         <span class="pill">数据更新 <b>${genTime}</b></span>
         <span class="pill">命中航线 <b id="statAll">-</b></span>
         <span class="pill" style="background:var(--red-soft);border-color:#f6cdd2"><b id="statA">-</b> 条 &lt; ¥${data.tiers.a}</span>
@@ -438,8 +438,6 @@ input[type=text]{flex:1}
     <!-- 筛选 -->
     <div class="card">
       <div class="list-hd">
-        <div class="flabel">区域</div>
-        <div class="chips" id="regions"></div>
         <div class="flabel">出发地（按机场）</div>
         <div class="selwrap">
           <button class="selbtn" id="originBtn" type="button"><span id="originBtnTxt">全部出发地</span><span class="caret">▾</span></button>
@@ -458,6 +456,8 @@ input[type=text]{flex:1}
           </div>
         </div>
         <div class="seltags empty" id="destSelTags" data-lb="已选目的地" data-empty="显示全部城市"><span class="lb">已选目的地</span><span class="empty-msg">显示全部城市</span></div>
+        <div class="flabel">区域</div>
+        <div class="chips" id="regions"></div>
         <div class="seltags empty" id="filterSelTags" data-lb="其他筛选" data-empty="区域/档位/搜索/窗口/时长/出发日"><span class="lb">其他筛选</span><span class="empty-msg">区域/档位/搜索/窗口/时长/出发日</span></div>
         <div class="dfilter">
           <div class="cell" title="仅在已抓取的数据里筛选；要抓更广的日期请去设置页改 config.json">
@@ -787,6 +787,9 @@ function render(){
     document.getElementById('list').innerHTML= rows.map(itemHTML).join('');
   }
   document.getElementById('cnt').textContent='共 '+rows.length+' 条航线';
+  // 顶部 pill：跟当前筛选同步（用户改了窗口/时长，顶上也跟着变）
+  document.getElementById('statWin').textContent = state.winStart+' ~ '+state.winEnd.slice(5);
+  document.getElementById('statDur').textContent = state.durMin+' ~ '+state.durMax+' 天';
   renderCalendar();
   document.getElementById('calSub').textContent = state.depDate ? ('已选 '+state.depDate.slice(5)+' · 当日最优航线') : '点击某天查看当日最优航线';
   document.querySelectorAll('.item').forEach(el=>{
