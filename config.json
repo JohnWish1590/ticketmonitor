@@ -6,6 +6,13 @@
       "lat": 31.2304,
       "lng": 121.4737,
       "tz": 8
+    },
+    {
+      "code": "PEK",
+      "city": "北京",
+      "lat": 39.9042,
+      "lng": 116.4074,
+      "tz": 8
     }
   ],
   "window": {
@@ -29,6 +36,78 @@
   ],
   "destinations": [
     {
+      "code": "CTU",
+      "city": "成都",
+      "region": "domestic",
+      "lat": 30.5728,
+      "lng": 104.0668,
+      "tz": 8
+    },
+    {
+      "code": "CKG",
+      "city": "重庆",
+      "region": "domestic",
+      "lat": 29.563,
+      "lng": 106.5516,
+      "tz": 8
+    },
+    {
+      "code": "XIY",
+      "city": "西安",
+      "region": "domestic",
+      "lat": 34.3416,
+      "lng": 108.9398,
+      "tz": 8
+    },
+    {
+      "code": "KMG",
+      "city": "昆明",
+      "region": "domestic",
+      "lat": 24.8801,
+      "lng": 102.8329,
+      "tz": 8
+    },
+    {
+      "code": "CSX",
+      "city": "长沙",
+      "region": "domestic",
+      "lat": 28.2282,
+      "lng": 112.9388,
+      "tz": 8
+    },
+    {
+      "code": "WUH",
+      "city": "武汉",
+      "region": "domestic",
+      "lat": 30.5928,
+      "lng": 114.3055,
+      "tz": 8
+    },
+    {
+      "code": "SYX",
+      "city": "三亚",
+      "region": "domestic",
+      "lat": 18.2528,
+      "lng": 109.5119,
+      "tz": 8
+    },
+    {
+      "code": "HAK",
+      "city": "海口",
+      "region": "domestic",
+      "lat": 20.0444,
+      "lng": 110.1999,
+      "tz": 8
+    },
+    {
+      "code": "XMN",
+      "city": "厦门",
+      "region": "domestic",
+      "lat": 24.4798,
+      "lng": 118.0894,
+      "tz": 8
+    },
+    {
       "code": "BKK",
       "city": "曼谷",
       "region": "asia",
@@ -51,6 +130,14 @@
       "lat": 18.7883,
       "lng": 98.9853,
       "tz": 7
+    },
+    {
+      "code": "SIN",
+      "city": "新加坡",
+      "region": "asia",
+      "lat": 1.3521,
+      "lng": 103.8198,
+      "tz": 8
     },
     {
       "code": "KUL",
@@ -102,28 +189,13 @@
       "tz": 7
     },
     {
-      "code": "CXR",
-      "city": "芽庄",
+      "code": "ICN",
+      "city": "首尔",
       "region": "asia",
-      "lat": 12.2388,
-      "lng": 109.1967,
-      "tz": 7
-    },
-    {
-      "code": "PQC",
-      "city": "富国岛",
-      "region": "asia",
-      "lat": 10.227,
-      "lng": 103.967,
-      "tz": 7
-    },
-    {
-      "code": "PUS",
-      "city": "釜山",
-      "region": "asia",
-      "lat": 35.1796,
-      "lng": 129.0756,
-      "tz": 9
+      "lat": 37.5665,
+      "lng": 126.978,
+      "tz": 9,
+      "alt": "SEL"
     },
     {
       "code": "TYO",
@@ -142,14 +214,6 @@
       "tz": 9
     },
     {
-      "code": "NGO",
-      "city": "名古屋",
-      "region": "asia",
-      "lat": 35.1815,
-      "lng": 136.9066,
-      "tz": 9
-    },
-    {
       "code": "FUK",
       "city": "福冈",
       "region": "asia",
@@ -158,21 +222,60 @@
       "tz": 9
     },
     {
-      "code": "CTS",
-      "city": "札幌",
-      "region": "asia",
-      "lat": 43.0618,
-      "lng": 141.3545,
-      "tz": 9,
-      "alt": "SPK"
+      "code": "SYD",
+      "city": "悉尼",
+      "region": "other",
+      "lat": -33.8688,
+      "lng": 151.2093,
+      "tz": 10
     },
     {
-      "code": "OKA",
-      "city": "冲绳",
-      "region": "asia",
-      "lat": 26.2124,
-      "lng": 127.6809,
-      "tz": 9
+      "code": "MEL",
+      "city": "墨尔本",
+      "region": "other",
+      "lat": -37.8136,
+      "lng": 144.9631,
+      "tz": 10
+    },
+    {
+      "code": "AKL",
+      "city": "奥克兰",
+      "region": "other",
+      "lat": -36.8485,
+      "lng": 174.7633,
+      "tz": 12
+    },
+    {
+      "code": "LON",
+      "city": "伦敦",
+      "region": "other",
+      "lat": 51.5074,
+      "lng": -0.1278,
+      "tz": 1
+    },
+    {
+      "code": "PAR",
+      "city": "巴黎",
+      "region": "other",
+      "lat": 48.8566,
+      "lng": 2.3522,
+      "tz": 2
+    },
+    {
+      "code": "NYC",
+      "city": "纽约",
+      "region": "other",
+      "lat": 40.7128,
+      "lng": -74.006,
+      "tz": -4
+    },
+    {
+      "code": "LAX",
+      "city": "洛杉矶",
+      "region": "other",
+      "lat": 34.0522,
+      "lng": -118.2437,
+      "tz": -7
     }
   ],
   "alerts": {

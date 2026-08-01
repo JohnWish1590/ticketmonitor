@@ -15,6 +15,11 @@ const ORIGINS = (data.origins && Array.isArray(data.origins) && data.origins.len
   ? data.origins
   : (data.origin ? [data.origin] : []);
 
+// 完整出发地机场目录（用于查询页「按机场」选择器，独立于实际监控的出发地）
+const AIRPORTS = require('./airports');
+// 完整目的地城市目录（3 区域模型），用于查询页「按城市」选择器
+const DEST_CATALOG = require('./destinations');
+
 // 航司名称补全 / 清洗
 const AL = {
   '5J': '宿务太平洋', 'AK': '亚航', 'FD': '泰国亚航', 'D7': '亚航X', 'TR': '酷航', 'VJ': '越捷航空',
@@ -101,6 +106,8 @@ const payload = {
   window: data.window,
   excludedAirlines: data.excludedAirlines,
   routes: data.routes,
+  originCatalog: AIRPORTS,
+  destCatalog: DEST_CATALOG,
   picks: {
     A: P.A ? { cheapest: P.A.cheapest.code, discount: P.A.discount.code, most: P.A.most.code } : null,
     B: P.B ? { cheapest: P.B.cheapest.code, discount: P.B.discount.code, most: P.B.most.code } : null,
@@ -194,6 +201,26 @@ input[type=text]{flex:1}
 .chip:hover{border-color:#c9d2e0}
 .chip.on{background:var(--blue-soft);border-color:#b9cdf5;color:var(--blue);font-weight:600}
 .count{font-size:11px;color:var(--tx3);padding:0 2px}
+
+/* ---- 出发地 / 目的地 可搜索下拉（参考常见机票网站）---- */
+.selwrap{position:relative}
+.selbtn{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;
+  border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12px;background:#fff;color:var(--tx);cursor:pointer;transition:.12s}
+.selbtn:hover{border-color:#c9c2e0}
+.selbtn.has{border-color:#b9cdf5;color:var(--blue);background:var(--blue-soft)}
+.selbtn .caret{color:var(--tx3);font-size:10px}
+.selpanel{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:600;background:#fff;
+  border:1px solid var(--line);border-radius:10px;box-shadow:0 8px 26px rgba(20,30,50,.16);padding:8px;max-height:290px;overflow:auto}
+.selpanel[hidden]{display:none}
+.selfilter{width:100%;margin-bottom:6px}
+.sellist{display:flex;flex-direction:column;gap:1px}
+.sello{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer;font-size:12px;color:var(--tx)}
+.sello:hover{background:#f3f5f8}
+.sello.on{background:var(--blue-soft);color:var(--blue);font-weight:600}
+.sello .code{color:var(--tx3);font-size:10.5px;margin-left:auto}
+.sello.on .code{color:var(--blue)}
+.selrgroup-hd{font-size:10.5px;font-weight:700;color:var(--tx3);margin:7px 2px 2px}
+.selempty{padding:10px 4px;color:var(--tx3);font-size:12px;text-align:center}
 
 #list{overflow-y:auto;flex:1;padding:8px}
 #list::-webkit-scrollbar{width:8px}
@@ -361,9 +388,21 @@ input[type=text]{flex:1}
     <div class="card">
       <div class="list-hd">
         <div class="flabel">出发地（按机场）</div>
-        <div class="chips" id="origins"></div>
+        <div class="selwrap">
+          <button class="selbtn" id="originBtn" type="button"><span id="originBtnTxt">全部出发地</span><span class="caret">▾</span></button>
+          <div class="selpanel" id="originPanel" hidden>
+            <input type="text" class="selfilter" id="originSearch" placeholder="搜索机场 / 城市">
+            <div class="sellist" id="originList"></div>
+          </div>
+        </div>
         <div class="flabel">目的地（按城市）</div>
-        <div class="chips" id="destinations"></div>
+        <div class="selwrap">
+          <button class="selbtn" id="destBtn" type="button"><span id="destBtnTxt">全部目的地</span><span class="caret">▾</span></button>
+          <div class="selpanel" id="destPanel" hidden>
+            <input type="text" class="selfilter" id="destSearch" placeholder="搜索城市 / 三字码">
+            <div class="sellist" id="destList"></div>
+          </div>
+        </div>
         <div class="flabel">区域</div>
         <div class="chips" id="regions"></div>
         <div class="tabs">
@@ -463,7 +502,7 @@ input[type=text]{flex:1}
 <script>${leafletJs}</script>
 <script>
 const DATA = ${JSON.stringify(payload)};
-const REGION_NAME={domestic:'国内/港澳台',asia:'亚洲',oceania:'大洋洲',europe:'欧洲',america:'美洲',africa:'非洲'};
+const REGION_NAME={domestic:'国内',asia:'亚洲（除中国外）',other:'其他'};
 const PICK_LABEL={cheapest:'最便宜',discount:'折扣最大',most:'航次最多'};
 const W={
   dry:{color:'#0f9960',bg:'#e7f6ee',label:'干爽少雨',desc:'出行窗口内少雨、无强降雨，最值得优先安排'},
@@ -618,9 +657,9 @@ function renderPicks(){
   document.getElementById('picks').innerHTML=h;
   document.querySelectorAll('.pick').forEach(el=>{
     el.onclick=()=>{ const id=el.dataset.id; const r=byKey[id];
-      state.tier='all'; state.regions.clear(); state.q=''; document.getElementById('q').value='';
+      state.tier='all'; state.regions.clear(); state.origins.clear(); state.destinations.clear(); state.q=''; document.getElementById('q').value='';
       document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('on',t.dataset.tier==='all'));
-      document.querySelectorAll('.chip').forEach(t=>t.classList.remove('on'));
+      refreshFiltersUI();
       render(); select(id,true); map.flyTo([r.lat,r.lng],4,{duration:.8}); };
   });
 }
@@ -631,26 +670,84 @@ document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>{
   t.classList.add('on'); state.tier=t.dataset.tier; render(); });
 document.getElementById('sort').onchange=e=>{state.sort=e.target.value;render();};
 document.getElementById('q').oninput=e=>{state.q=e.target.value.trim();render();};
-const regions=[...new Set(DATA.routes.map(r=>r.region))];
-document.getElementById('regions').innerHTML=regions.map(r=>'<div class="chip" data-r="'+r+'">'+REGION_NAME[r]+' '+DATA.routes.filter(x=>x.region===r).length+'</div>').join('');
+// ===== 区域筛选（3 区域模型：国内 / 亚洲除中国外 / 其他）=====
+const REGION_ORDER=['domestic','asia','other'];
+document.getElementById('regions').innerHTML=
+  REGION_ORDER.map(r=>'<div class="chip" data-r="'+r+'">'+REGION_NAME[r]+'</div>').join('')
+  +'<div class="chip" data-r="" id="regAll">全部</div>';
 document.querySelectorAll('#regions .chip').forEach(c=>c.onclick=()=>{
-  const r=c.dataset.r; if(state.regions.has(r)){state.regions.delete(r);c.classList.remove('on');}
-  else{state.regions.add(r);c.classList.add('on');} render(); });
-// 出发地筛选（多出发地时才有意义）
-const originCodes=[...new Set(DATA.routes.map(r=>r.originCode).filter(Boolean))];
-const originMeta={}; (DATA.origins||[]).forEach(o=>originMeta[o.code]=o);
-document.getElementById('origins').innerHTML= originCodes.map(c=>{
-  const o=originMeta[c]||{}; return '<div class="chip" data-o="'+c+'">'+(o.city||c)+' '+c+'</div>';
-}).join('');
-document.querySelectorAll('#origins .chip').forEach(c=>c.onclick=()=>{
-  const o=c.dataset.o; if(state.origins.has(o)){state.origins.delete(o);c.classList.remove('on');}
-  else{state.origins.add(o);c.classList.add('on');} render(); });
-// 目的地筛选（按城市，不按机场）
-const destCities=[...new Set(DATA.routes.map(r=>r.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'zh'));
-document.getElementById('destinations').innerHTML=destCities.map(c=>'<div class="chip" data-d="'+c+'">'+c+'</div>').join('');
-document.querySelectorAll('#destinations .chip').forEach(c=>c.onclick=()=>{
-  const d=c.dataset.d; if(state.destinations.has(d)){state.destinations.delete(d);c.classList.remove('on');}
-  else{state.destinations.add(d);c.classList.add('on');} render(); });
+  const r=c.dataset.r;
+  if(r===''){ state.regions.clear(); }
+  else if(state.regions.has(r)){ state.regions.delete(r); }
+  else { state.regions.add(r); }
+  document.querySelectorAll('#regions .chip').forEach(x=>x.classList.toggle('on', x.dataset.r!=='' && state.regions.has(x.dataset.r)));
+  render();
+});
+
+// ===== 出发地（按机场）可搜索多选下拉 =====
+const originMeta=DATA.originCatalog||[];
+function renderOriginList(q){
+  const kw=(q||'').trim().toLowerCase();
+  const items=originMeta.filter(o=>!kw || (o.code||'').toLowerCase().includes(kw) || (o.city||'').toLowerCase().includes(kw));
+  document.getElementById('originList').innerHTML= items.length
+    ? items.map(o=>'<div class="sello'+(state.origins.has(o.code)?' on':'')+'" data-o="'+o.code+'">'+o.city+'<span class="code">'+o.code+'</span></div>').join('')
+    : '<div class="selempty">无匹配机场</div>';
+  document.querySelectorAll('#originList .sello').forEach(el=>el.onclick=()=>{
+    const c=el.dataset.o;
+    if(state.origins.has(c)) state.origins.delete(c); else state.origins.add(c);
+    el.classList.toggle('on', state.origins.has(c)); updateOriginBtn(); render();
+  });
+}
+function updateOriginBtn(){
+  const n=state.origins.size;
+  document.getElementById('originBtnTxt').textContent = n ? ('已选 '+n+' 个出发地') : '全部出发地';
+  document.getElementById('originBtn').classList.toggle('has', n>0);
+}
+const originBtn=document.getElementById('originBtn'), originPanel=document.getElementById('originPanel');
+originBtn.onclick=(e)=>{ e.stopPropagation(); originPanel.hidden=!originPanel.hidden; if(!originPanel.hidden){ renderOriginList(document.getElementById('originSearch').value); document.getElementById('originSearch').focus(); } };
+document.getElementById('originSearch').oninput=e=>renderOriginList(e.target.value);
+renderOriginList(''); updateOriginBtn();
+
+// ===== 目的地（按城市）可搜索多选下拉（按区域分组）=====
+const destMeta=DATA.destCatalog||[];
+function renderDestList(q){
+  const kw=(q||'').trim().toLowerCase();
+  const byR={};
+  destMeta.forEach(d=>{ if(kw && !((d.code||'').toLowerCase().includes(kw)||(d.city||'').toLowerCase().includes(kw))) return; (byR[d.region]=byR[d.region]||[]).push(d); });
+  let h='';
+  REGION_ORDER.forEach(r=>{ if(!byR[r]||!byR[r].length) return;
+    h+='<div class="selrgroup-hd">'+REGION_NAME[r]+'</div>';
+    h+=byR[r].sort((a,b)=>a.city.localeCompare(b.city,'zh')).map(d=>'<div class="sello'+(state.destinations.has(d.city)?' on':'')+'" data-d="'+d.city+'">'+d.city+'<span class="code">'+d.code+'</span></div>').join('');
+  });
+  document.getElementById('destList').innerHTML= h || '<div class="selempty">无匹配城市</div>';
+  document.querySelectorAll('#destList .sello').forEach(el=>el.onclick=()=>{
+    const c=el.dataset.d;
+    if(state.destinations.has(c)) state.destinations.delete(c); else state.destinations.add(c);
+    el.classList.toggle('on', state.destinations.has(c)); updateDestBtn(); render();
+  });
+}
+function updateDestBtn(){
+  const n=state.destinations.size;
+  document.getElementById('destBtnTxt').textContent = n ? ('已选 '+n+' 个城市') : '全部目的地';
+  document.getElementById('destBtn').classList.toggle('has', n>0);
+}
+const destBtn=document.getElementById('destBtn'), destPanel=document.getElementById('destPanel');
+destBtn.onclick=(e)=>{ e.stopPropagation(); destPanel.hidden=!destPanel.hidden; if(!destPanel.hidden){ renderDestList(document.getElementById('destSearch').value); document.getElementById('destSearch').focus(); } };
+document.getElementById('destSearch').oninput=e=>renderDestList(e.target.value);
+renderDestList(''); updateDestBtn();
+
+// 点击外部关闭下拉
+document.addEventListener('click',()=>{ originPanel.hidden=true; destPanel.hidden=true; });
+originPanel.onclick=e=>e.stopPropagation();
+destPanel.onclick=e=>e.stopPropagation();
+
+// 统一刷新筛选 UI（推荐卡点击重置时调用）
+function refreshFiltersUI(){
+  document.querySelectorAll('#regions .chip').forEach(x=>x.classList.toggle('on', x.dataset.r!=='' && state.regions.has(x.dataset.r)));
+  updateOriginBtn(); updateDestBtn();
+  renderOriginList(document.getElementById('originSearch').value);
+  renderDestList(document.getElementById('destSearch').value);
+}
 
 document.getElementById('statAll').textContent=DATA.routes.length;
 document.getElementById('statA').textContent=DATA.routes.filter(r=>r.tier==='A').length;
